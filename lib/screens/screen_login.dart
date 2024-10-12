@@ -71,7 +71,7 @@ class _ScreenLoginState extends State<ScreenLogin> {
                     radius: 50,
                     child: Image.asset(
                       "assets/icons/jazz_icon.png",
-                    fit: BoxFit.cover,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   Text(

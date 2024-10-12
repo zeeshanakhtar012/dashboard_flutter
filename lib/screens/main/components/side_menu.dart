@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../screen_add_users.dart';
 import '../../screen_profile.dart';
 
 class SideMenu extends StatelessWidget {
@@ -36,7 +37,9 @@ class SideMenu extends StatelessWidget {
           DrawerListTile(
             title: "Users",
             svgSrc: "assets/icons/menu_notification.svg",
-            press: () {},
+            press: () {
+              Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => ScreenAddUsers()));
+            },
           ),
           DrawerListTile(
             title: "Profile",
