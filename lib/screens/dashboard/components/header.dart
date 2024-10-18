@@ -1,12 +1,15 @@
+import 'package:admin/controllers/controller_download_data.dart';
 import 'package:admin/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
 
 import '../../../constants.dart';
 import '../../screen_profile.dart';
+import '../../screen_search.dart';
 
 class Header extends StatelessWidget {
-  const Header({
+  Header({
     Key? key,
     required this.scaffoldKey,
   }) : super(key: key);
@@ -49,28 +52,48 @@ class ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(left: defaultPadding),
-      padding: EdgeInsets.symmetric(
-        horizontal: defaultPadding,
-        vertical: defaultPadding / 2,
-      ),
-      decoration: BoxDecoration(
-        color: secondaryColor,
-        borderRadius: const BorderRadius.all(Radius.circular(10)),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.file_copy, color: Colors.white,),
-          if (!Responsive.isMobile(context))
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: defaultPadding / 2),
-              child: Text("Download File"),
-            ),
-          IconButton(onPressed: (){}, icon: Icon(Icons.download,color: Colors.white,)),
-        ],
+    DownloadController downloadController = Get.put(DownloadController());
+    return InkWell(
+      onTap: () {},
+      child: Container(
+        margin: EdgeInsets.only(left: defaultPadding),
+        padding: EdgeInsets.symmetric(
+          horizontal: defaultPadding,
+          vertical: defaultPadding / 2,
+        ),
+        decoration: BoxDecoration(
+          color: secondaryColor,
+          borderRadius: const BorderRadius.all(Radius.circular(10)),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.file_copy, color: Colors.white),
+            if (!Responsive.isMobile(context))
+              Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text("Download File"),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // Trigger the input dialog to enter the collection name
+                      downloadController.showCollectionInputDialog();
+                    },
+                    icon: Icon(Icons.download, color: Colors.white),
+                  ),
+                  Obx(() {
+                    if (downloadController.isDownloading.value) {
+                      return CircularProgressIndicator(); // Show loader when downloading
+                    } else {
+                      return SizedBox.shrink(); // Hide loader
+                    }
+                  }),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -84,6 +107,10 @@ class SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      onTap: () {
+        Get.to(() => SearchScreen());
+      },
+      readOnly: true,
       decoration: InputDecoration(
         hintText: "Search",
         fillColor: secondaryColor,
@@ -93,7 +120,9 @@ class SearchField extends StatelessWidget {
           borderRadius: const BorderRadius.all(Radius.circular(10)),
         ),
         suffixIcon: InkWell(
-          onTap: () {},
+          onTap: () {
+            Get.to(() => SearchScreen());
+          },
           child: Container(
             padding: EdgeInsets.all(defaultPadding * 0.75),
             margin: EdgeInsets.symmetric(horizontal: defaultPadding / 2),

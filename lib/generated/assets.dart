@@ -29,6 +29,7 @@ class Assets {
   static const String iconsUnknown = 'assets/icons/unknown.svg';
   static const String iconsXdFile = 'assets/icons/xd_file.svg';
   static const String imagesLogo = 'assets/images/logo.png';
+  static const String imagesPng = 'assets/images/png.png';
   static const String imagesProfilePic = 'assets/images/profile_pic.png';
 
 }

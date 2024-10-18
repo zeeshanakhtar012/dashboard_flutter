@@ -1,17 +1,28 @@
 import 'package:admin/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../controllers/controller_admin.dart';
+import '../controllers/controller_image_url.dart';
 
 class ScreenProfile extends StatelessWidget {
-  const ScreenProfile({super.key});
+  final AdminController adminController = Get.put(AdminController());
+  final ControllerImagesUrl controllerImagesUrl = Get.put(ControllerImagesUrl());
+
+  ScreenProfile({super.key});
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideScreen = screenWidth > 600;
 
+    // Fetch admin data and the first image URL once when the screen is opened
+    adminController.fetchAdmin(adminController.emailController.value.text);
+    if (controllerImagesUrl.imageUrl.isEmpty) {
+      controllerImagesUrl.fetchAdminImage('admin');
+    }
     return Scaffold(
       appBar: AppBar(
-        title: Text("Admin Profile"),
+        title: const Text("Admin Profile"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -30,7 +41,7 @@ class ScreenProfile extends StatelessWidget {
               : Column(
             children: [
               _profileDetails(context),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               _actions(context),
             ],
           ),
@@ -40,115 +51,78 @@ class ScreenProfile extends StatelessWidget {
   }
 
   Widget _profileDetails(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Admin profile picture
-        CircleAvatar(
-          radius: 50,
-          backgroundImage: AssetImage("assets/images/logo.png"),
-        ),
-        const SizedBox(height: 20),
-
-        // Admin name
-        Text(
-          "Admin Name: Rahil Khan",
-          style: titleFont,
-        ),
-        const SizedBox(height: 20),
-
-        // Email address
-        Row(
+    return Obx(() {
+      if (adminController.isLoading.value) {
+        return const CircularProgressIndicator();
+      } else {
+        return Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.email, color: Colors.grey),
-            const SizedBox(width: 10),
+            Obx(() {
+              return CircleAvatar(
+                radius: 50,
+                backgroundImage: NetworkImage(controllerImagesUrl.imageUrl.value),
+                onBackgroundImageError: (error, stackTrace) {
+                  controllerImagesUrl.imageUrl.value = "assets/images/logo.png"; // Fallback image
+                },
+              );
+            }),
+            const SizedBox(height: 20),
             Text(
-              "Email: admin@example.com",
-              style: subtitle,
+              "Admin Name: ${adminController.nameController.value.text}",
+              style: titleFont,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.email, color: Colors.grey),
+                const SizedBox(width: 10),
+                Text(
+                  "Email: ${adminController.emailController.value.text}",
+                  style: subtitle,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.phone, color: Colors.grey),
+                const SizedBox(width: 10),
+                Text(
+                  "Phone: ${adminController.phoneNoController.value.text}",
+                  style: subtitle,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.admin_panel_settings, color: Colors.grey),
+                SizedBox(width: 10),
+                Text(
+                  "Role: Super Admin",
+                  style: subtitle,
+                ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 20),
-
-        // Phone number
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.phone, color: Colors.grey),
-            const SizedBox(width: 10),
-            Text(
-              "Phone: +1-123-456-7890",
-              style: subtitle,
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        // Role
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.admin_panel_settings, color: Colors.grey),
-            const SizedBox(width: 10),
-            Text(
-              "Role: Super Admin",
-              style: subtitle,
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        // Admin ID
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.badge, color: Colors.grey),
-            const SizedBox(width: 10),
-            Text(
-              "Admin ID: ADM12345",
-              style: subtitle,
-            ),
-          ],
-        ),
-      ],
-    );
+        );
+      }
+    });
   }
 
   Widget _actions(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        ElevatedButton.icon(
+        ElevatedButton(
           onPressed: () {
+            adminController.adminLogout();
           },
-          icon: Icon(Icons.lock, color: Colors.white),
-          label: Text("Change Password"),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            backgroundColor: Colors.blue,
-          ),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          onPressed: () {
-
-          },
-          icon: Icon(Icons.logout, color: Colors.red),
-          label: Text(
-            "Logout",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.red,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            backgroundColor: Colors.white,
-            side: BorderSide(color: Colors.red),
-          ),
+          child: const Text("Logout"),
         ),
       ],
     );

@@ -24,6 +24,12 @@ dependencies:
   firebase_storage: ^12.3.3
   intl: ^0.19.0  # Updated to the latest stable version
   shared_preferences: ^2.3.2
+  csv: ^6.0.0
+  form_validator: ^2.1.1
+  image_picker: ^1.1.2
+  path_provider: ^2.1.4
+  desktop_window: ^0.4.1
+
 
 dev_dependencies:
   flutter_test:

@@ -1,40 +1,111 @@
+import 'dart:typed_data';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-
-import 'main/main_screen.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart'; // Import image_picker package
+import '../controllers/controller_user.dart';
+import '../models/user.dart';
 
 class ScreenAddUsers extends StatefulWidget {
-  const ScreenAddUsers({Key? key}) : super(key: key);
+  final bool isUpdate;
+  const ScreenAddUsers({Key? key, required this.isUpdate}) : super(key: key);
 
   @override
-  _ScreenAddUsersState createState() => _ScreenAddUsersState();
+  State<ScreenAddUsers> createState() => _ScreenAddUsersState();
 }
 
 class _ScreenAddUsersState extends State<ScreenAddUsers> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _isPasswordVisible = false;
+  User? user;
+  var phoneNo = TextEditingController().obs;
+  var userName = TextEditingController().obs;
+  var userAddress = TextEditingController().obs;
+  var email = TextEditingController().obs;
+  var fid = TextEditingController().obs;
+  var employeeId = TextEditingController().obs;
+  var region = TextEditingController().obs;
+  var mbu = TextEditingController().obs;
+  var designation = TextEditingController().obs;
+  String? imageUrl; // Variable to hold the image URL
   bool _isLoading = false;
+  final _formKey = GlobalKey<FormState>();
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
+  // Method to pick image using image_picker
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final Uint8List byteData = await pickedFile.readAsBytes();
+      String downloadUrl = await _uploadImageToFirebase(byteData, pickedFile.name);
       setState(() {
-        _isLoading = true;
+        imageUrl = downloadUrl; // Store the download URL
       });
-      Future.delayed(Duration(seconds: 2), () {
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
-        // if (_emailController.text == 'admin@example.com' &&
-        //     _passwordController.text == 'password123') {
-        //
-        // } else {
-        //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        //     content: Text('Invalid email or password'),
-        //     backgroundColor: Colors.red,
-        //   ));
-        // }
+    }
+  }
+
+  // Upload image to Firebase Storage
+  Future<String> _uploadImageToFirebase(Uint8List data, String fileName) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref('users/$fileName');
+      await storageRef.putData(data);
+      String downloadUrl = await storageRef.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to upload image: $e');
+      return '';
+    }
+  }
+
+  // Save user data
+  Future<void> _saveUser() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserController controller = Get.put(UserController());
+      final userId = DateTime.now().millisecondsSinceEpoch.toString();
+      final user = User(
+        userId: userId,
+        designation: designation.value.text,
+        region: region.value.text,
+        employeeId: employeeId.value.text,
+        mbu: mbu.value.text,
+        userName: userName.value.text,
+        userAddress: userAddress.value.text,
+        fid: fid.value.text,
+        phoneNumber: phoneNo.value.text,
+        email: email.value.text,
+        imageUrl: imageUrl,
+      );
+
+      if (widget.isUpdate == false) {
+        await controller.saveUserToFirestore(user);
+      } else {
+        await controller.updateUserInFirestore(user);
+      }
+
+      // Clear the TextEditingControllers after successful save
+      phoneNo.value.clear();
+      userName.value.clear();
+      userAddress.value.clear();
+      email.value.clear();
+      fid.value.clear();
+      employeeId.value.clear();
+      region.value.clear();
+      mbu.value.clear();
+      designation.value.clear();
+
+      Get.snackbar('Success', 'User added successfully!');
+    } catch (error) {
+      Get.snackbar('Error', 'Failed to add user: $error');
+    } finally {
+      setState(() {
+        _isLoading = false;
       });
     }
   }
@@ -43,6 +114,16 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () {
+            Get.back();
+          },
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+        ),
+        title: Text(widget.isUpdate ? 'Update User' : 'Add Users'),
+        centerTitle: true,
+      ),
       backgroundColor: Colors.grey[200],
       body: Center(
         child: Padding(
@@ -62,21 +143,26 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
               ],
             ),
             child: Form(
-              // key: _formKey,
+              key: _formKey,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      child: Image.asset(
-                        "assets/icons/jazz_icon.png",
-                        fit: BoxFit.cover,
+                    GestureDetector(
+                      onTap: _pickImage, // Call image picker on tap
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.grey[300],
+                        backgroundImage: imageUrl != null
+                            ? NetworkImage(imageUrl!)
+                            : NetworkImage("https://cdn-icons-png.flaticon.com/512/149/149071.png") as ImageProvider, // Display selected image or default
+                        child: imageUrl == null ? Icon(Icons.add_a_photo, size: 30) : null, // Show icon if no image selected
                       ),
                     ),
+                    const SizedBox(height: 20),
                     Text(
-                      "Admin Login",
+                      widget.isUpdate ? "Update User" : "Add User",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -85,136 +171,28 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 30),
-                    // Email field
-                    TextFormField(
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
-                      ),
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    // Password field
-                    TextFormField(
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
-                      ),
-                      controller: _passwordController,
-                      obscureText: !_isPasswordVisible,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.phone),
-                      )
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
-                        ),
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'User Name',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.phone),
-                        )
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
-                        ),
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'Address',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.phone),
-                        )
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
-                        ),
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'Gender',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.phone),
-                        )
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
-                        ),
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'Employee Id',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.phone),
-                        )
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
-                        ),
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'Optional Email',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.phone),
-                        )
-                    ),
+                    _buildTextField(email, 'Email', Icons.email),
                     const SizedBox(height: 30),
-                    // Login button
+                    _buildTextField(phoneNo, 'Phone Number', Icons.phone),
+                    const SizedBox(height: 20),
+                    _buildTextField(userName, 'User Name', Icons.drive_file_rename_outline),
+                    const SizedBox(height: 20),
+                    _buildTextField(userAddress, 'User Address', Icons.location_on),
+                    const SizedBox(height: 20),
+                    _buildTextField(fid, 'User FID', Icons.insert_drive_file_outlined),
+                    const SizedBox(height: 20),
+                    _buildTextField(employeeId, 'Employee Id', Icons.work),
+                    const SizedBox(height: 20),
+                    _buildTextField(region, 'Region', Icons.map),
+                    const SizedBox(height: 30),
+                    _buildTextField(mbu, 'MBU', Icons.menu_book),
+                    const SizedBox(height: 30),
                     _isLoading
                         ? Center(child: CircularProgressIndicator())
                         : ElevatedButton(
-                      onPressed: _login,
+                      onPressed: _saveUser,
                       child: Text(
-                        "Add User",
+                        widget.isUpdate ? "Update User" : "Save User",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -229,6 +207,28 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField(Rx<TextEditingController> controller, String label, IconData icon) {
+    return TextFormField(
+      style: TextStyle(
+        color: Colors.black,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+      controller: controller.value,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+        suffixIcon: Icon(icon, color: Colors.black),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter $label';
+        }
+        return null;
+      },
     );
   }
 }

@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
-
 import '../../constants.dart';
 import '../main/components/side_menu.dart';
+import '../screen_retailer_details.dart';
 import 'components/header.dart';
 import 'components/users_details.dart';
 
@@ -18,11 +18,18 @@ class DashboardScreen extends StatelessWidget {
         body: SingleChildScrollView(
           primary: false,
           padding: EdgeInsets.all(defaultPadding),
-          child: Column(
+          child: ListView(
+            scrollDirection: Axis.vertical,
+            physics: AlwaysScrollableScrollPhysics(),
+            shrinkWrap: true,
             children: [
               Header(scaffoldKey: _scaffoldKey),
               SizedBox(height: defaultPadding),
               UserDetailsTable(),
+              const SizedBox(
+                height: 20,
+              ),
+              ScreenRetailersDetails(),
             ],
           ),
         ),

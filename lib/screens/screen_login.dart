@@ -1,4 +1,7 @@
+import 'package:admin/controllers/controller_admin.dart';
+import 'package:admin/screens/screen_admin_sign_up.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import 'main/main_screen.dart';
 
@@ -13,6 +16,7 @@ class _ScreenLoginState extends State<ScreenLogin> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  AdminController controller = Get.put(AdminController());
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -25,16 +29,7 @@ class _ScreenLoginState extends State<ScreenLogin> {
         setState(() {
           _isLoading = false;
         });
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
-        // if (_emailController.text == 'admin@example.com' &&
-        //     _passwordController.text == 'password123') {
-        //
-        // } else {
-        //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        //     content: Text('Invalid email or password'),
-        //     backgroundColor: Colors.red,
-        //   ));
-        // }
+        controller.adminLogin(_emailController.text, _passwordController.text);
       });
     }
   }
@@ -68,7 +63,8 @@ class _ScreenLoginState extends State<ScreenLogin> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   CircleAvatar(
-                    radius: 50,
+                    backgroundColor: Colors.transparent,
+                    radius: 70,
                     child: Image.asset(
                       "assets/icons/jazz_icon.png",
                       fit: BoxFit.cover,
@@ -172,7 +168,7 @@ class _ScreenLoginState extends State<ScreenLogin> {
                       ),
                       TextButton(
                         onPressed: () {
-                          // Navigate to registration screen (if required)
+                          Get.to(ScreenAdminSignup());
                         },
                         child: Text("Create Account"),
                       ),

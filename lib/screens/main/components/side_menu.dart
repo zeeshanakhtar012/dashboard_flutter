@@ -1,8 +1,13 @@
+import 'package:admin/controllers/controller_admin.dart';
+import 'package:admin/screens/screen_add_retailers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
 
 import '../../screen_add_users.dart';
 import '../../screen_profile.dart';
+import '../../screen_retailers_details.dart';
+import '../../screen_user_list.dart';
 
 class SideMenu extends StatelessWidget {
   const SideMenu({
@@ -11,6 +16,7 @@ class SideMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AdminController controller = Get.put(AdminController());
     return Drawer(
       child: ListView(
         children: [
@@ -30,28 +36,39 @@ class SideMenu extends StatelessWidget {
             ),
           ),
           DrawerListTile(
-            title: "Download",
+            title: "Add Retailer",
             svgSrc: "assets/icons/menu_doc.svg",
-            press: () {},
+            press: () {
+              Get.to(ScreenAddRetailers());
+            },
           ),
           DrawerListTile(
-            title: "Users",
+            title: "Users Details",
             svgSrc: "assets/icons/menu_notification.svg",
             press: () {
-              Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => ScreenAddUsers()));
+             Get.to(UserListScreen());
+            },
+          ),
+          DrawerListTile(
+            title: "Add Users",
+            svgSrc: "assets/icons/menu_notification.svg",
+            press: () {
+              Get.to(ScreenAddUsers(isUpdate: false,));
             },
           ),
           DrawerListTile(
             title: "Profile",
             svgSrc: "assets/icons/menu_profile.svg",
             press: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context)=>ScreenProfile()));
+              Get.to(ScreenProfile());
             },
           ),
           DrawerListTile(
             title: "Logout",
             svgSrc: "assets/icons/menu_setting.svg",
-            press: () {},
+            press: () async{
+              await controller.adminLogout();
+            },
           ),
         ],
       ),

@@ -26,7 +26,6 @@ class MyInputField extends StatefulWidget {
   final bool? showCounter;
   final bool? showBorder;
   final bool? isDense;
-  final Key? key;
   final FocusNode? focusNode;
   final EdgeInsetsGeometry? margin;
   final String? Function(String?)? validator;
@@ -34,49 +33,46 @@ class MyInputField extends StatefulWidget {
   final Widget? suffix;
   final InputBorder? border;
   final InputBorder? enabledBorder;
-  final InputBorderType? borderType;
+  final BorderStyle? borderType;
   final EdgeInsetsGeometry? padding;
 
-  MyInputField(
-      {this.hint,
-        this.isPasswordField,
-        this.onChange,
-        this.padding,
-        this.keyboardType,
-        this.prefix,
-        this.limit,
-        this.height,
-        this.controller,
-        this.onTap,
-        this.readOnly,
-        this.fillColor,
-        this.maxLines,
-        this.text,
-        this.showCounter,
-        this.counterColor,
-        this.showBorder,
-        this.minLines,
-        this.margin,
-        this.suffix,
-        this.validator,
-        this.isDense,
-        this.onFieldSubmitted,
-        this.asyncValidator,
-        this.label,
-        this.key,
-        this.textStyle,
-        this.border,
-        this.enabledBorder,
-        this.borderType,
-        this.focusNode,})
-      : super(key: key);
+  MyInputField({
+    this.hint,
+    this.isPasswordField,
+    this.onChange,
+    this.padding,
+    this.keyboardType,
+    this.prefix,
+    this.limit,
+    this.height,
+    this.controller,
+    this.onTap,
+    this.readOnly,
+    this.fillColor,
+    this.maxLines,
+    this.text,
+    this.showCounter,
+    this.counterColor,
+    this.showBorder,
+    this.minLines,
+    this.margin,
+    this.suffix,
+    this.validator,
+    this.isDense,
+    this.onFieldSubmitted,
+    this.asyncValidator,
+    this.label,
+    this.textStyle,
+    this.border,
+    this.enabledBorder,
+    this.borderType,
+    this.focusNode,
+  });
 
   final _state = _MyInputFieldState();
 
   @override
-  _MyInputFieldState createState() {
-    return _state;
-  }
+  _MyInputFieldState createState() => _state;
 
   Future<void> validate() async {
     if (asyncValidator != null) {
@@ -85,49 +81,53 @@ class MyInputField extends StatefulWidget {
   }
 }
 
-enum InputBorderType { outline, underline }
-
 class _MyInputFieldState extends State<MyInputField> {
+  late TextEditingController _controller;
   late bool _isHidden;
   String text = "";
   bool isPasswordField = false;
+  String? errorMessage;
+  bool isValidating = false;
+  bool isValid = false;
+  bool isDirty = false;
 
   @override
   void initState() {
+    super.initState();
     isPasswordField = widget.isPasswordField ?? false;
     _isHidden = isPasswordField;
-    errorMessage = null;
+
+    // Initialize controller if null
+    _controller = widget.controller ?? TextEditingController();
+    if (widget.text != null) {
+      _controller.text = widget.text!;
+    }
+
+    // Check if both validators are set
     if (widget.validator != null && widget.asyncValidator != null) {
-      throw "validator and asyncValidator are not allowed at same time";
+      throw "Validator and asyncValidator cannot be used at the same time.";
     }
-
-    if (widget.controller != null && widget.text != null) {
-      widget.controller!.text = widget.text!;
-    }
-
-    super.initState();
   }
 
-  var isValidating = false;
-  var isValid = false;
-  var isDirty = false;
-  String? errorMessage;
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(top: 2),
-      height:widget.height?? 48,
+      padding: const EdgeInsets.only(top: 2),
+      height: widget.height ?? 48,
       decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.r),
-          color: Color(0xFF190733),
+        borderRadius: BorderRadius.circular(8.r),
+        color: const Color(0xFF190733),
       ),
       child: TextFormField(
+        controller: _controller,
         maxLength: widget.limit,
-        key: widget.key,
-        onChanged: widget.asyncValidator == null
-            ? widget.onChange
-            : (value) {
+        onChanged: widget.asyncValidator == null ? widget.onChange : (value) {
           text = value.toString();
           validateValue(text);
           if (widget.onChange != null) {
@@ -137,137 +137,59 @@ class _MyInputFieldState extends State<MyInputField> {
         style: widget.textStyle,
         obscureText: _isHidden,
         onTap: widget.onTap,
-        validator: widget.validator ??
-            (widget.asyncValidator != null
-                ? (value) {
-              text = value.toString();
-              return errorMessage;
-            }
-                : null),
+        validator: widget.validator ?? (widget.asyncValidator != null
+            ? (value) {
+          text = value.toString();
+          return errorMessage;
+        }
+            : null),
         maxLines: widget.maxLines ?? 1,
         minLines: widget.minLines,
         readOnly: widget.readOnly ?? false,
         keyboardType: widget.keyboardType,
-        controller: widget.controller,
-        initialValue: widget.controller == null ? widget.text : null,
         onFieldSubmitted: widget.onFieldSubmitted,
         focusNode: widget.focusNode,
-        enabled: widget.keyboardType != TextInputType.none,
         autovalidateMode: AutovalidateMode.onUserInteraction,
-        buildCounter: (_, {required currentLength, maxLength, required isFocused}) {
-          return Visibility(
-            visible: widget.showCounter ?? false,
-            child: Padding(
-              padding: EdgeInsets.only(left: 16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey,
-                      blurStyle: BlurStyle.outer,
-                      spreadRadius: 3,
-                      blurRadius: 2,
-                    )
-                  ]
-                ),
-                alignment: Alignment.centerRight,
-                child: Text(
-                  currentLength.toString() + (widget.limit != null ? "/" + maxLength.toString() : ""),
-                  style: TextStyle(color: widget.counterColor),
-                ),
-              ),
-            ),
-          );
-        },
         decoration: InputDecoration(
-            prefixIcon: widget.prefix,
-            hintText: widget.hint,
-            labelText: widget.label,
-            isDense: widget.isDense,
-            fillColor: widget.fillColor ?? /*Color(0xFFECECEC)*/
-                Color(0xff8A8D9F),
-            filled: widget.fillColor != null,
-            suffixIconConstraints: BoxConstraints(minWidth: 50.sp),
-            suffixIcon: widget.suffix ??
-                (isPasswordField
-                    ? IconButton(
-                  onPressed: () {
-                    if (isPasswordField) {
-                      if (mounted) {
-                        setState(() {
-                          _isHidden = !_isHidden;
-                        });
-                      }
-                    }
-                  },
-                  icon: Visibility(
-                    visible: isPasswordField,
-                    child: Icon(
-                      isPasswordField ? (_isHidden ? Icons.visibility : Icons.visibility_off) : null,
-                      color: Colors.grey,
-                    ),
-                  ),
-                )
-                    : (widget.asyncValidator != null ? _getSuffixIcon() : null)),
-            hintStyle:TextStyle(
-              color: Colors.white,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
+          prefixIcon: widget.prefix,
+          hintText: widget.hint,
+          labelText: widget.label,
+          isDense: widget.isDense,
+          fillColor: widget.fillColor ?? const Color(0xff8A8D9F),
+          filled: widget.fillColor != null,
+          suffixIcon: widget.suffix ?? (isPasswordField ? IconButton(
+            onPressed: () {
+              setState(() {
+                _isHidden = !_isHidden;
+              });
+            },
+            icon: Icon(
+              _isHidden ? Icons.visibility : Icons.visibility_off,
+              color: Colors.grey,
             ),
-            contentPadding:widget.padding?? EdgeInsets.only(left: 15, right: 15, top: (widget.maxLines != null) ? 15 : 5, bottom: (widget.maxLines != null) ? 15 : 5),
-           border: InputBorder.none,
-          // filled: true,
-          // fillColor: Color(0xF0BBBBBB),
+          ) : null),
+          contentPadding: widget.padding ?? const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          border: widget.border ?? InputBorder.none,
         ),
       ),
     );
   }
 
-  Widget _getSuffixIcon() {
-    if (isValidating) {
-      return Transform.scale(scale: 0.7, child: CupertinoActivityIndicator());
-    } else {
-      if (!isValid && isDirty) {
-        return Icon(
-          Icons.cancel,
-          color: Colors.red,
-          size: 20.sp,
-        );
-      } else if (isValid) {
-        return Icon(
-          Icons.check_circle,
-          color: Colors.green,
-          size: 20,
-        );
-      } else {
-        return SizedBox(
-          height: 1,
-          width: 1,
-        );
-      }
-    }
-  }
-
   Future<void> validateValue(String newValue) async {
     isDirty = true;
     if (text.isEmpty) {
-      if (mounted) {
-        setState(() {
-          isValid = false;
-        });
-      }
+      setState(() {
+        isValid = false;
+      });
       return;
     }
     isValidating = true;
-    if (mounted) {
-      setState(() {});
-    }
+    setState(() {});
+
     errorMessage = await widget.asyncValidator!(newValue);
     isValidating = false;
     isValid = errorMessage == null;
-    if (mounted) {
-      setState(() {});
-    }
+    setState(() {});
   }
 
   Future<void> validate() async {
