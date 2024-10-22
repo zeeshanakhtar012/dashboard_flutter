@@ -1,38 +1,79 @@
-import 'package:admin/screens/screen_user_details_data.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:admin/screens/screen_user_details_data.dart';
 
-class UserDataScreen extends StatelessWidget {
+class ScreenUserDetails extends StatefulWidget {
   final String userId;
 
-  UserDataScreen({required this.userId});
+  ScreenUserDetails({required this.userId});
+
+  @override
+  _ScreenUserDetailsState createState() => _ScreenUserDetailsState();
+}
+
+class _ScreenUserDetailsState extends State<ScreenUserDetails> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  Map<String, List<Map<String, String>>> uploadedData = {};
+
+  // Function to fetch all modules from Firestore
+  Future<void> fetchAllModules() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userId = prefs.getString('userId');
+      print("Retrieved User ID: $userId"); // Debugging line
+
+      if (userId != null) {
+        QuerySnapshot modulesSnapshot = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('modules')
+            .get();
+
+        Map<String, List<Map<String, String>>> modulesData = {};
+
+        for (var doc in modulesSnapshot.docs) {
+          var data = doc.data() as Map<String, dynamic>;
+
+          String moduleName = doc.id;
+          String uploadedAt = (data['time'] as Timestamp).toDate().toString();
+
+          // Extract date and format it to "dd-MM-yyyy"
+          String formattedDate = "${uploadedAt.split(' ')[0].split('-').reversed.join('-')}";
+
+          if (!modulesData.containsKey(formattedDate)) {
+            modulesData[formattedDate] = [];
+          }
+
+          modulesData[formattedDate]!.add({
+            'module': moduleName,
+            'time': formattedDate,
+          });
+        }
+
+        setState(() {
+          uploadedData = modulesData;
+        });
+      } else {
+        Get.snackbar("Error", "User ID not found. Please log in again.", backgroundColor: Colors.red);
+      }
+    } catch (error) {
+      Get.snackbar("Error", "Failed to fetch module data: $error", backgroundColor: Colors.red);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAllModules();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Updated uploaded data with four modules for each date
-    final Map<String, List<Map<String, String>>> uploadedData = {
-      '01-10-2024': [
-        {'module': 'Module 1', 'uploadedAt': '01-10-2024'},
-        {'module': 'Module 2', 'uploadedAt': '01-10-2024'},
-        {'module': 'Module 3', 'uploadedAt': '01-10-2024'},
-        {'module': 'Module 4', 'uploadedAt': '01-10-2024'},
-      ],
-      '02-10-2024': [
-        {'module': 'Module 1', 'uploadedAt': '02-10-2024'},
-        {'module': 'Module 2', 'uploadedAt': '02-10-2024'},
-        {'module': 'Module 3', 'uploadedAt': '02-10-2024'},
-        {'module': 'Module 4', 'uploadedAt': '02-10-2024'},
-      ],
-      '03-10-2024': [
-        {'module': 'Module 1', 'uploadedAt': '03-10-2024'},
-        {'module': 'Module 2', 'uploadedAt': '03-10-2024'},
-        {'module': 'Module 3', 'uploadedAt': '03-10-2024'},
-        {'module': 'Module 4', 'uploadedAt': '03-10-2024'},
-      ],
-    };
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Data for $userId'),
+        title: Text('Data for ${widget.userId}'),
       ),
       body: Center(
         child: Container(
@@ -47,7 +88,9 @@ class UserDataScreen extends StatelessWidget {
               ),
               SizedBox(height: 20),
               // Display uploaded data by date
-              Expanded(
+              uploadedData.isEmpty
+                  ? Center(child: CircularProgressIndicator())
+                  : Expanded(
                 child: ListView.builder(
                   itemCount: uploadedData.keys.length,
                   itemBuilder: (context, index) {
@@ -64,26 +107,29 @@ class UserDataScreen extends StatelessWidget {
                           children: [
                             Text(
                               date,
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 10),
                             DataTable(
                               columns: const <DataColumn>[
                                 DataColumn(
-                                  label: Text('Module', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  label: Text('Module',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold)),
                                 ),
-                                // DataColumn(
-                                //   label: Text('Uploaded At', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                // ),
                                 DataColumn(
-                                  label: Text('Action', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  label: Text('Action',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold)),
                                 ),
                               ],
                               rows: modules.map((data) {
                                 return DataRow(
                                   cells: [
                                     DataCell(Text(data['module']!)),
-                                    // DataCell(Text(data['uploadedAt']!)),
                                     DataCell(
                                       ElevatedButton(
                                         child: Text('View Details'),
@@ -91,7 +137,10 @@ class UserDataScreen extends StatelessWidget {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                              builder: (context) => DataDetailScreen(moduleId: data['module']!),
+                                              builder: (context) =>
+                                                  DataDetailScreen(
+                                                      moduleId:
+                                                      data['module']!),
                                             ),
                                           );
                                         },

@@ -18,6 +18,7 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
   User? user;
   var phoneNo = TextEditingController().obs;
   var userName = TextEditingController().obs;
+  var password = TextEditingController().obs;
   var userAddress = TextEditingController().obs;
   var email = TextEditingController().obs;
   var fid = TextEditingController().obs;
@@ -77,6 +78,7 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
         mbu: mbu.value.text,
         userName: userName.value.text,
         userAddress: userAddress.value.text,
+        password: password.value.text,
         fid: fid.value.text,
         phoneNumber: phoneNo.value.text,
         email: email.value.text,
@@ -93,6 +95,7 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
       phoneNo.value.clear();
       userName.value.clear();
       userAddress.value.clear();
+      password.value.clear();
       email.value.clear();
       fid.value.clear();
       employeeId.value.clear();
@@ -100,9 +103,9 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
       mbu.value.clear();
       designation.value.clear();
 
-      Get.snackbar('Success', 'User added successfully!');
+      Get.snackbar('Success', 'User added successfully!', backgroundColor: Colors.green, colorText: Colors.black, snackPosition: SnackPosition.TOP);
     } catch (error) {
-      Get.snackbar('Error', 'Failed to add user: $error');
+      Get.snackbar('Error', 'Failed to add user: $error', backgroundColor: Colors.red, colorText: Colors.black, snackPosition: SnackPosition.BOTTOM);
     } finally {
       setState(() {
         _isLoading = false;
@@ -174,6 +177,8 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
                     _buildTextField(email, 'Email', Icons.email),
                     const SizedBox(height: 30),
                     _buildTextField(phoneNo, 'Phone Number', Icons.phone),
+                    const SizedBox(height: 20),
+                    _buildTextField(password, 'User Password', Icons.phone),
                     const SizedBox(height: 20),
                     _buildTextField(userName, 'User Name', Icons.drive_file_rename_outline),
                     const SizedBox(height: 20),

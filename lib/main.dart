@@ -1,7 +1,6 @@
 import 'package:admin/constants.dart';
 import 'package:admin/screens/main/main_screen.dart';
 import 'package:admin/screens/screen_login.dart';
-import 'package:desktop_window/desktop_window.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
