@@ -36,18 +36,18 @@ class User {
   // Factory method to create User from Firestore document snapshot
   factory User.fromDocumentSnapshot(Map<String, dynamic> doc) {
     return User(
-      userId: doc['userId'],
-      phoneNumber: doc['phoneNumber'],
-      fid: doc['fid'],
-      employeeId: doc['employeeId'],
-      email: doc['email'],
-      designation: doc['designation'],
-      region: doc['region'],
-      userAddress: doc['userAddress'],
-      userName: doc['userName'],
-      password: doc['password'],
-      mbu: doc['mbu'],
-      imageUrl: doc.containsKey('imageUrl') ? doc['imageUrl'] : null,
+      userId: doc['userId'] as String?, // Explicitly casting
+      phoneNumber: doc['phoneNumber'] as String?, // Explicitly casting
+      fid: doc['fid'] as String?, // Explicitly casting
+      employeeId: doc['employeeId'] as String?, // Explicitly casting
+      email: doc['email'] as String?, // Explicitly casting
+      designation: doc['designation'] as String?, // Explicitly casting
+      region: doc['region'] as String?, // Explicitly casting
+      userAddress: doc['userAddress'] as String?, // Explicitly casting
+      userName: doc['userName'] as String?, // Explicitly casting
+      password: doc['password'] as String?, // Explicitly casting
+      mbu: doc['mbu'] as String?, // Explicitly casting
+      imageUrl: doc.containsKey('imageUrl') ? doc['imageUrl'] as String? : null, // Safe access
       linkedRetailers: doc['linkedRetailers'] != null
           ? Map<String, dynamic>.from(doc['linkedRetailers'])
           : null,

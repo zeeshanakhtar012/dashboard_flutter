@@ -99,14 +99,16 @@ DataRow retailerDataRow(RetailerModel retailerInfo, BuildContext context, Retail
           child: CircleAvatar(
             radius: 20,
             child: retailerInfo.imageUrl != null && retailerInfo.imageUrl!.isNotEmpty
-                ? Image.network(
-              retailerInfo.imageUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Image.asset('assets/images/profile_pic.png',
-                    fit: BoxFit.cover);
-              },
-            )
+                ? ClipOval(
+                  child: Image.network(
+                                retailerInfo.imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset('assets/images/profile_pic.png',
+                      fit: BoxFit.cover);
+                                },
+                              ),
+                )
                 : Image.asset('assets/images/profile_pic.png',
                 fit: BoxFit.cover),
           ),

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart'; // Import image_picker package
+import 'package:image_picker/image_picker.dart';
 import '../controllers/controller_user.dart';
 import '../models/user.dart';
 
@@ -15,7 +15,6 @@ class ScreenAddUsers extends StatefulWidget {
 }
 
 class _ScreenAddUsersState extends State<ScreenAddUsers> {
-  User? user;
   var phoneNo = TextEditingController().obs;
   var userName = TextEditingController().obs;
   var password = TextEditingController().obs;
@@ -26,11 +25,10 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
   var region = TextEditingController().obs;
   var mbu = TextEditingController().obs;
   var designation = TextEditingController().obs;
-  String? imageUrl; // Variable to hold the image URL
+  String? imageUrl;
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
 
-  // Method to pick image using image_picker
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -39,12 +37,11 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
       final Uint8List byteData = await pickedFile.readAsBytes();
       String downloadUrl = await _uploadImageToFirebase(byteData, pickedFile.name);
       setState(() {
-        imageUrl = downloadUrl; // Store the download URL
+        imageUrl = downloadUrl;
       });
     }
   }
 
-  // Upload image to Firebase Storage
   Future<String> _uploadImageToFirebase(Uint8List data, String fileName) async {
     try {
       final storageRef = FirebaseStorage.instance.ref('users/$fileName');
@@ -57,9 +54,9 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
     }
   }
 
-  // Save user data
   Future<void> _saveUser() async {
     if (!_formKey.currentState!.validate()) {
+      Get.snackbar('Error', 'Please fill all required fields', backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
       return;
     }
 
@@ -91,7 +88,6 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
         await controller.updateUserInFirestore(user);
       }
 
-      // Clear the TextEditingControllers after successful save
       phoneNo.value.clear();
       userName.value.clear();
       userAddress.value.clear();
@@ -103,9 +99,9 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
       mbu.value.clear();
       designation.value.clear();
 
-      Get.snackbar('Success', 'User added successfully!', backgroundColor: Colors.green, colorText: Colors.black, snackPosition: SnackPosition.TOP);
+      Get.snackbar('Success', 'User added successfully!', backgroundColor: Colors.green, colorText: Colors.white, snackPosition: SnackPosition.TOP);
     } catch (error) {
-      Get.snackbar('Error', 'Failed to add user: $error', backgroundColor: Colors.red, colorText: Colors.black, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'Failed to add user: $error', backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
     } finally {
       setState(() {
         _isLoading = false;
@@ -153,44 +149,36 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     GestureDetector(
-                      onTap: _pickImage, // Call image picker on tap
+                      onTap: _pickImage,
                       child: CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.grey[300],
                         backgroundImage: imageUrl != null
                             ? NetworkImage(imageUrl!)
-                            : NetworkImage("https://cdn-icons-png.flaticon.com/512/149/149071.png") as ImageProvider, // Display selected image or default
-                        child: imageUrl == null ? Icon(Icons.add_a_photo, size: 30) : null, // Show icon if no image selected
+                            : NetworkImage("https://cdn-icons-png.flaticon.com/512/149/149071.png") as ImageProvider,
+                        child: imageUrl == null ? Icon(Icons.add_a_photo, size: 30) : null,
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      widget.isUpdate ? "Update User" : "Add User",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 30),
                     _buildTextField(email, 'Email', Icons.email),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
                     _buildTextField(phoneNo, 'Phone Number', Icons.phone),
                     const SizedBox(height: 20),
-                    _buildTextField(password, 'User Password', Icons.phone),
+                    _buildTextField(password, 'User Password', Icons.lock),
                     const SizedBox(height: 20),
-                    _buildTextField(userName, 'User Name', Icons.drive_file_rename_outline),
+                    _buildTextField(userName, 'User Name', Icons.person),
                     const SizedBox(height: 20),
                     _buildTextField(userAddress, 'User Address', Icons.location_on),
                     const SizedBox(height: 20),
-                    _buildTextField(fid, 'User FID', Icons.insert_drive_file_outlined),
+                    _buildTextField(fid, 'User FID', Icons.insert_drive_file),
                     const SizedBox(height: 20),
                     _buildTextField(employeeId, 'Employee Id', Icons.work),
                     const SizedBox(height: 20),
                     _buildTextField(region, 'Region', Icons.map),
-                    const SizedBox(height: 30),
-                    _buildTextField(mbu, 'MBU', Icons.menu_book),
+                    const SizedBox(height: 20),
+                    _buildTextField(mbu, 'MBU', Icons.business),
+                    const SizedBox(height: 20),
+                    _buildTextField(designation, 'Designation', Icons.badge),
                     const SizedBox(height: 30),
                     _isLoading
                         ? Center(child: CircularProgressIndicator())

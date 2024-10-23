@@ -90,13 +90,15 @@ DataRow userDataRow(User userInfo, BuildContext context) {
           child: CircleAvatar(
             radius: 20,
             child: userInfo.imageUrl != null && userInfo.imageUrl!.isNotEmpty
-                ? Image.network(
-              userInfo.imageUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Image.asset('assets/images/profile_pic.png', fit: BoxFit.cover);
-              },
-            )
+                ? ClipOval(
+                  child: Image.network(
+                                userInfo.imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset('assets/images/profile_pic.png', fit: BoxFit.cover);
+                                },
+                              ),
+                )
                 : Image.asset('assets/images/profile_pic.png', fit: BoxFit.cover),
           ),
         ),

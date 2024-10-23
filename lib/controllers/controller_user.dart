@@ -63,7 +63,6 @@ class UserController extends GetxController {
   }
 
 // generate csv file
-
   Future<String> generateCsv(String userId) async {
     List<List<dynamic>> rows = [];
 
@@ -94,6 +93,8 @@ class UserController extends GetxController {
 
       if (userDoc.exists) {
         User user = User.fromDocumentSnapshot(userDoc.data() as Map<String, dynamic>);
+
+        // Extract user details only once
         String userName = user.userName ?? "N/A";
         String email = user.email ?? "N/A";
         String designation = user.designation ?? "N/A";
@@ -111,11 +112,12 @@ class UserController extends GetxController {
             .get();
 
         if (moduleSnapshot.docs.isNotEmpty) {
-          for (var moduleDoc in moduleSnapshot.docs) {
-            Map<String, dynamic> moduleData = moduleDoc.data() as Map<String, dynamic>;
+          // Loop through each module and add to rows
+          for (var i = 0; i < moduleSnapshot.docs.length; i++) {
+            Map<String, dynamic> moduleData = moduleSnapshot.docs[i].data() as Map<String, dynamic>;
 
             // Use the document ID as the module name
-            String moduleName = moduleDoc.id; // Use document ID for module name
+            String moduleName = moduleSnapshot.docs[i].id; // Use document ID for module name
             String assetType = moduleData['assetType'] ?? "N/A";
             List<String> images = List<String>.from(moduleData['images'] ?? []);
             String location = moduleData['location'] ?? "N/A";
@@ -130,26 +132,42 @@ class UserController extends GetxController {
                 ? DateFormat.yMMMd().format((moduleData['visitDate'] as Timestamp).toDate())
                 : "N/A";
 
-            // Add a row for each module's data with the user details
-            rows.add([
-              userId,
-              userName,
-              email,
-              designation,
-              employeeId,
-              phoneNumber,
-              region,
-              mbu,
-              userAddress,
-              moduleName,
-              assetType,
-              images.join(", "), // Convert images list to a comma-separated string
-              location,
-              retailerAddress,
-              retailerName,
-              time,
-              visitDate,
-            ]);
+            // Add a row for each module's data with the user details included only once
+            // If it's the first module, include all user details
+            if (i == 0) {
+              rows.add([
+                userId,
+                userName,
+                email,
+                designation,
+                employeeId,
+                phoneNumber,
+                region,
+                mbu,
+                userAddress,
+                moduleName,
+                assetType,
+                images.join(", "), // Convert images list to a comma-separated string
+                location,
+                retailerAddress,
+                retailerName,
+                time,
+                visitDate,
+              ]);
+            } else {
+              // For subsequent modules, omit user details
+              rows.add([
+                userId,
+                moduleName,
+                assetType,
+                images.join(", "),
+                location,
+                retailerAddress,
+                retailerName,
+                time,
+                visitDate,
+              ]);
+            }
           }
         } else {
           // If there are no modules, add a single row for the user with "No Modules"
@@ -188,14 +206,17 @@ class UserController extends GetxController {
   }
 
 // Function to download the CSV file
-
   Future<void> downloadCsv(String userId) async {
     try {
       // Generate CSV data for the specific user
       String csvData = await generateCsv(userId);
 
-      // Create a unique filename for the CSV using the user ID
-      String fileName = "user_$userId.csv";
+      // Fetch user details to get the user name for the file name
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+      String userName = userDoc.exists ? (userDoc.data() as Map<String, dynamic>)['userName'] ?? "user" : "user";
+
+      // Create a unique filename for the CSV using the user name
+      String fileName = "${userName.replaceAll(' ', '_')}_report.csv";
 
       if (kIsWeb) {
         // Web: Trigger CSV download using AnchorElement
@@ -230,6 +251,7 @@ class UserController extends GetxController {
       Get.snackbar("Error", "Failed to download/save CSV: $e");
     }
   }
+
 
 // Function to fetch module data
 

@@ -21,14 +21,14 @@ class Module {
 
   factory Module.fromMap(Map<String, dynamic> doc) {
     return Module(
-      assetType: doc['assetType'],
+      assetType: doc['assetType'] as String?, // Explicitly casting
       images: List<String>.from(doc['images'] ?? []),
-      location: doc['location'],
-      retailerAddress: doc['retailerAddress'],
-      retailerName: doc['retailerName'],
-      time: doc['time'],
-      visitDate: doc['visitDate'],
-      companyAsset: doc['companyAsset'], // Optional, only for MarketIntelligence
+      location: doc['location'] as String?, // Explicitly casting
+      retailerAddress: doc['retailerAddress'] as String?, // Explicitly casting
+      retailerName: doc['retailerName'] as String?, // Explicitly casting
+      time: doc['time'] as String?, // Explicitly casting
+      visitDate: doc['visitDate'] as String?, // Explicitly casting
+      companyAsset: doc['companyAsset'] as String?, // Explicitly casting
     );
   }
 
