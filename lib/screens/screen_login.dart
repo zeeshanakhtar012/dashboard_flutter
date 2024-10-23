@@ -168,7 +168,7 @@ class _ScreenLoginState extends State<ScreenLogin> {
                       ),
                       TextButton(
                         onPressed: () {
-                          Get.to(ScreenAdminSignup());
+                          Get.to(ScreenAdminSignup(isUpdate: false,));
                         },
                         child: Text("Create Account"),
                       ),

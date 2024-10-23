@@ -1,15 +1,20 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user.dart';
+import 'dart:html' as html;
+import 'dart:typed_data';
 
 class UserController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -17,28 +22,8 @@ class UserController extends GetxController {
   var usersList = <User>[].obs;
   var isLoading = false.obs;
   var userModules = <Map<String, dynamic>>[].obs;
+  var searchUserByName = TextEditingController().obs;
 
-  Future<void> uploadModuleData(String moduleName, String data) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString('userId');
-
-    if (userId != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('modules')
-          .doc(moduleName)
-          .set({
-        'data': data,
-        'uploadedAt': Timestamp.now(),
-        'status': 'completed',
-      });
-    } else {
-      print("Error: User is not logged in.");
-    }
-  }
-
-  // Optionally, you can add methods for fetching user module data and showing progress
   Future<void> getUserModuleProgress() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userId = prefs.getString('userId'); // Retrieve user ID
@@ -57,8 +42,6 @@ class UserController extends GetxController {
       print("Error: User is not logged in.");
     }
   }
-  ////
-
   @override
   void onInit() {
     super.onInit();
@@ -71,103 +54,185 @@ class UserController extends GetxController {
       usersList.value = querySnapshot.docs.map((doc) {
         return User.fromDocumentSnapshot(doc.data() as Map<String, dynamic>);
       }).toList();
+      log("usersList = ${usersList.join(', ')}"); // Improved logging
     } catch (e) {
       Get.snackbar('Error', 'Failed to fetch users: $e');
     } finally {
       isLoading(false);
     }
   }
-  // Save module data for a user
-  Future<void> saveModuleData(String userId, String moduleName, Map<String, dynamic> moduleData) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('userData')
-          .doc(moduleName)
-          .set(moduleData);
-      Get.snackbar("Success", "Data saved successfully!",
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-    } catch (e) {
-      Get.snackbar("Error", e.toString());
-    }
-  }
 
-  // generate csv data
-  Future<String> generateCsv() async {
+// generate csv file
+
+  Future<String> generateCsv(String userId) async {
     List<List<dynamic>> rows = [];
 
-    // Add headers
-    rows.add(["User ID", "User Name", "Email", "Module Name", "Module Data"]);
+    // Add headers for the CSV
+    rows.add([
+      "User ID",
+      "User Name",
+      "Email",
+      "Designation",
+      "Employee ID",
+      "Phone Number",
+      "Region",
+      "MBU",
+      "User Address",
+      "Module Name",
+      "Asset Type",
+      "Images",
+      "Location",
+      "Retailer Address",
+      "Retailer Name",
+      "Time",
+      "Visit Date"
+    ]);
 
-    for (var user in usersList) {
-      for (var module in user.modules) {
-        rows.add([
-          user.userId,
-          user.userName,
-          user.email,
-          module['name'], // Assuming the module has a 'name' field
-          module['data'], // Adjust as per your module structure
-        ]);
+    try {
+      // Fetch the specific user from Firestore
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+
+      if (userDoc.exists) {
+        User user = User.fromDocumentSnapshot(userDoc.data() as Map<String, dynamic>);
+        String userName = user.userName ?? "N/A";
+        String email = user.email ?? "N/A";
+        String designation = user.designation ?? "N/A";
+        String employeeId = user.employeeId ?? "N/A";
+        String phoneNumber = user.phoneNumber ?? "N/A";
+        String region = user.region ?? "N/A";
+        String mbu = user.mbu ?? "N/A";
+        String userAddress = user.userAddress ?? "N/A";
+
+        // Fetch modules for the user
+        QuerySnapshot moduleSnapshot = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('modules')
+            .get();
+
+        if (moduleSnapshot.docs.isNotEmpty) {
+          for (var moduleDoc in moduleSnapshot.docs) {
+            Map<String, dynamic> moduleData = moduleDoc.data() as Map<String, dynamic>;
+
+            // Use the document ID as the module name
+            String moduleName = moduleDoc.id; // Use document ID for module name
+            String assetType = moduleData['assetType'] ?? "N/A";
+            List<String> images = List<String>.from(moduleData['images'] ?? []);
+            String location = moduleData['location'] ?? "N/A";
+            String retailerAddress = moduleData['retailerAddress'] ?? "N/A";
+            String retailerName = moduleData['retailerName'] ?? "N/A";
+
+            // Convert Timestamp to String for 'time' and 'visitDate'
+            String time = moduleData['time'] is Timestamp
+                ? DateFormat.yMMMd().add_jm().format((moduleData['time'] as Timestamp).toDate())
+                : "N/A";
+            String visitDate = moduleData['visitDate'] is Timestamp
+                ? DateFormat.yMMMd().format((moduleData['visitDate'] as Timestamp).toDate())
+                : "N/A";
+
+            // Add a row for each module's data with the user details
+            rows.add([
+              userId,
+              userName,
+              email,
+              designation,
+              employeeId,
+              phoneNumber,
+              region,
+              mbu,
+              userAddress,
+              moduleName,
+              assetType,
+              images.join(", "), // Convert images list to a comma-separated string
+              location,
+              retailerAddress,
+              retailerName,
+              time,
+              visitDate,
+            ]);
+          }
+        } else {
+          // If there are no modules, add a single row for the user with "No Modules"
+          rows.add([
+            userId,
+            userName,
+            email,
+            designation,
+            employeeId,
+            phoneNumber,
+            region,
+            mbu,
+            userAddress,
+            "No Modules",
+            "N/A",
+            "N/A",
+            "N/A",
+            "N/A",
+            "N/A",
+            "N/A",
+          ]);
+        }
+      } else {
+        // Handle case where the user does not exist
+        rows.add([userId, "User not found", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
       }
+
+      log("CSV rows created for user ID $userId: $rows");
+    } catch (e) {
+      log("Error fetching user or modules: $e");
     }
 
+    // Convert rows to CSV string
     String csv = const ListToCsvConverter().convert(rows);
     return csv;
   }
 
-  // download csv
-  Future<void> downloadCsv() async {
+// Function to download the CSV file
+
+  Future<void> downloadCsv(String userId) async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userId = prefs.getString('userId');
+      // Generate CSV data for the specific user
+      String csvData = await generateCsv(userId);
 
-      if (userId == null) {
-        Get.snackbar("Error", "User ID not found. Please log in again.");
-        return;
+      // Create a unique filename for the CSV using the user ID
+      String fileName = "user_$userId.csv";
+
+      if (kIsWeb) {
+        // Web: Trigger CSV download using AnchorElement
+        final bytes = utf8.encode(csvData);
+        final blob = html.Blob([Uint8List.fromList(bytes)], 'text/csv'); // Create a Blob
+        final url = html.Url.createObjectUrlFromBlob(blob);
+
+        // Create an anchor element and trigger the download
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute("download", fileName)
+          ..click();
+
+        // Revoke the object URL after download
+        html.Url.revokeObjectUrl(url);
+
+        // Show a success message in the web app
+        Get.snackbar("Success", "CSV file is being downloaded");
+      } else {
+        // Desktop: Save the CSV file locally using path_provider and dart:io
+        final directory = await getApplicationDocumentsDirectory();
+        final path = "${directory.path}/$fileName"; // Use the new filename
+        final file = File(path);
+
+        // Write the CSV data to the file
+        await file.writeAsString(csvData);
+
+        // Show a success message in the desktop app
+        Get.snackbar("Success", "CSV saved at: $path");
       }
-
-      // Retrieve module data from Firestore
-      QuerySnapshot moduleSnapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('modules')
-          .get();
-
-      // Prepare CSV data
-      StringBuffer csvData = StringBuffer();
-      csvData.writeln("Module Name, Module Data"); // CSV header
-
-      for (var doc in moduleSnapshot.docs) {
-        String moduleName = doc.id; // Module name as document ID
-        Map<String, dynamic>? moduleData = doc.data() as Map<String, dynamic>?;
-
-        if (moduleData != null) {
-          csvData.writeln('$moduleName, ${moduleData.toString()}'); // Format your data as needed
-        }
-      }
-
-      // Get the application documents directory
-      final directory = await getApplicationDocumentsDirectory();
-      final path = "${directory.path}/modules.csv";
-
-      // Write CSV data to the file
-      final file = File(path);
-      await file.writeAsString(csvData.toString());
-
-      Get.snackbar("Success", "CSV downloaded at: $path");
-    } on PlatformException catch (e) {
-      Get.snackbar("Error", "Platform error: ${e.message}");
     } catch (e) {
-      Get.snackbar("Error", "Failed to download CSV: ${e.toString()}");
+      print("Error: $e");
+      Get.snackbar("Error", "Failed to download/save CSV: $e");
     }
   }
 
+// Function to fetch module data
 
-
-  // Fetch module data for a user
   Future<void> fetchModuleData(String userId, String moduleName) async {
     var doc = await _firestore
         .collection('users')
@@ -195,8 +260,6 @@ class UserController extends GetxController {
       print("Failed to save user: $error");
     });
   }
-
-  // delete user
   // Method to remove a user from Firestore by userId
   Future<void> removeUserFromFirestore(String userId) async {
     try {
@@ -210,10 +273,7 @@ class UserController extends GetxController {
       print("Error removing user: $e");
     }
   }
-
-
   /// get users from firestore
-
   Future<User?> getUserFromFirestore(String userId) async {
     DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
@@ -244,23 +304,29 @@ class UserController extends GetxController {
 
   // Add this method to UserController
 
-  void searchUsersByUsername(String username) async {
+  Future<void> searchUsersByUsername(String username) async {
     try {
       isLoading(true);
+      String trimmedUsername = username.trim();
       QuerySnapshot querySnapshot = await _firestore
           .collection('users')
-          .where('userName', isEqualTo: username)  // Search by username
+          .where('userName', isGreaterThanOrEqualTo: trimmedUsername)  // Start matching from the trimmed username
+          .where('userName', isLessThanOrEqualTo: trimmedUsername + '\uf8ff') // Include all possible endings
           .get();
+
       usersList.value = querySnapshot.docs.map((doc) {
         return User.fromDocumentSnapshot(doc.data() as Map<String, dynamic>);
       }).toList();
+      log("User found = ${querySnapshot}");
+      if (usersList.isEmpty) {
+        Get.snackbar('Info', 'No users found matching "$trimmedUsername".');
+      }
     } catch (e) {
       Get.snackbar('Error', 'Failed to search users: $e');
     } finally {
       isLoading(false);
     }
   }
-
   // Fetch user modules
   Future<void> fetchUserModules() async {
     try {
@@ -279,7 +345,6 @@ class UserController extends GetxController {
               .map((doc) => doc.data() as Map<String, dynamic>)
               .toList();
           log("User modules fetched successfully: $moduleList");
-          updateUserModules(moduleList); // Update the userModules observable
         } else {
           log("No modules found for this user.");
           Get.snackbar('No Modules Found', 'This user has no modules.', snackPosition: SnackPosition.BOTTOM);
@@ -292,15 +357,6 @@ class UserController extends GetxController {
       Get.snackbar('Error', 'Failed to fetch modules: $e', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red);
     }
   }
-
-// Method to handle updating the UI or controller with fetched module data
-  void updateUserModules(List<Map<String, dynamic>> modules) {
-    userModules.value = modules; // Update the observable list
-    update(); // Update the UI with GetX
-  }
-
-  // fetch user list with modules
-
   Future<void> fetchUserListWithModules() async {
     try {
       // Fetch all users from the 'users' collection

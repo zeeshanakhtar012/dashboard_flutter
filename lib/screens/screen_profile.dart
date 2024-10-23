@@ -1,4 +1,5 @@
 import 'package:admin/constants.dart';
+import 'package:admin/screens/screen_admin_sign_up.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/controller_admin.dart';
@@ -34,7 +35,10 @@ class ScreenProfile extends StatelessWidget {
                 child: _profileDetails(context),
               ),
               Expanded(
-                child: _actions(context),
+                child: _logout(context),
+              ),
+              Expanded(
+                child: _updateProfile(context),
               ),
             ],
           )
@@ -42,7 +46,8 @@ class ScreenProfile extends StatelessWidget {
             children: [
               _profileDetails(context),
               const SizedBox(height: 30),
-              _actions(context),
+              _logout(context),
+              _updateProfile(context),
             ],
           ),
         ),
@@ -115,7 +120,7 @@ class ScreenProfile extends StatelessWidget {
     });
   }
 
-  Widget _actions(BuildContext context) {
+  Widget _logout(BuildContext context) {
     return Column(
       children: [
         ElevatedButton(
@@ -123,6 +128,26 @@ class ScreenProfile extends StatelessWidget {
             adminController.adminLogout();
           },
           child: const Text("Logout"),
+        ),
+      ],
+    );
+  }
+  Widget _updateProfile(BuildContext context) {
+    return Column(
+      children: [
+        ElevatedButton(
+          style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all(Colors.green),
+            animationDuration: Duration(
+              seconds: 3,
+            ),
+          ),
+          onPressed: () {
+            Get.to(ScreenAdminSignup(isUpdate: true,));
+          },
+          child: const Text("Update Profile", style: TextStyle(
+            color:Colors.white,
+          ),),
         ),
       ],
     );

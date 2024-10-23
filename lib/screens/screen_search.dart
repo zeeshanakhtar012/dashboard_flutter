@@ -88,7 +88,6 @@ class SearchScreen extends StatelessWidget {
 
   // Function to perform search based on input value
   void performSearch(String query) {
-    // Search for Users and Retailers simultaneously
     userController.searchUsersByUsername(query);
     retailerController.searchRetailersByName(query);
   }

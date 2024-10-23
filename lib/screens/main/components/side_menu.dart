@@ -27,7 +27,7 @@ class SideMenu extends StatelessWidget {
                     height: 100,
                     width: 100,
                     "assets/icons/jazz_icon.png"),
-                Text("Jazz", style: TextStyle(
+                Text("Jazz Meri Power", style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
@@ -51,7 +51,7 @@ class SideMenu extends StatelessWidget {
           ),
           DrawerListTile(
             title: "Add Users",
-            svgSrc: "assets/icons/menu_notification.svg",
+            svgSrc: "assets/icons/menu_tran.svg",
             press: () {
               Get.to(ScreenAddUsers(isUpdate: false,));
             },

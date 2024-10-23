@@ -1,3 +1,5 @@
+import 'modules.dart';
+
 class User {
   String? userId;
   String? phoneNumber;
@@ -12,7 +14,7 @@ class User {
   String? userAddress;
   String? imageUrl;
   Map<String, dynamic>? linkedRetailers;
-  List<Map<String, dynamic>> modules; // Add modules field
+  List<Module> modules; // Change from List<Map<String, dynamic>> to List<Module>
 
   User({
     this.userId,
@@ -28,7 +30,7 @@ class User {
     this.password,
     this.imageUrl,
     this.linkedRetailers,
-    List<Map<String, dynamic>>? modules, // Constructor parameter for modules
+    List<Module>? modules, // Constructor parameter for modules
   }) : modules = modules ?? []; // Initialize modules list
 
   // Factory method to create User from Firestore document snapshot
@@ -50,7 +52,9 @@ class User {
           ? Map<String, dynamic>.from(doc['linkedRetailers'])
           : null,
       modules: doc['modules'] != null
-          ? List<Map<String, dynamic>>.from(doc['modules'])
+          ? List<Module>.from(
+        (doc['modules'] as List).map((item) => Module.fromMap(item)),
+      )
           : [], // Initialize modules list from Firestore
     );
   }
@@ -70,7 +74,7 @@ class User {
       'mbu': mbu,
       'imageUrl': imageUrl,
       'linkedRetailers': linkedRetailers,
-      'modules': modules, // Include modules in the map
+      'modules': modules.map((module) => module.toMap()).toList(), // Include modules in the map
       'password': password,
     };
   }

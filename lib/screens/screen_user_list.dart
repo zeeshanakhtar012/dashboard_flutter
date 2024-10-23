@@ -1,14 +1,19 @@
+import 'dart:developer';
 import 'package:admin/screens/screen_data_user.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../controllers/controller_user.dart';
+import 'screen_search_user.dart'; // Import the SearchUserScreen
 
 class UserListScreen extends StatelessWidget {
   final UserController userController = Get.put(UserController());
+  final TextEditingController searchController = TextEditingController(); // Text editing controller for search
 
   @override
   Widget build(BuildContext context) {
+    userController.fetchAllUsers();
+    log("Users  = ${userController.usersList}");
     return Scaffold(
       appBar: AppBar(
         title: Text('Users List'),
@@ -22,8 +27,23 @@ class UserListScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('List of Users', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                Text('List of Users', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 SizedBox(height: 20),
+
+                // Search box
+                TextField(
+                  controller: searchController,
+                  readOnly: true,
+                  onTap: (){
+                    Get.to(() => SearchUserScreen(searchQuery: searchController.text.trim()));
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Search Users',
+                    suffixIcon: Icon(Icons.search),
+                  ),
+                ),
+                SizedBox(height: 20),
+
                 Obx(() {
                   if (userController.isLoading.value) {
                     return Center(child: CircularProgressIndicator());
@@ -40,9 +60,6 @@ class UserListScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             InkWell(
-                              // onTap: () {
-                              //   Get.to(ScreenUserDetails(userId: user.userId.toString()));
-                              // },
                               child: Row(
                                 children: [
                                   CircleAvatar(
@@ -63,21 +80,17 @@ class UserListScreen extends StatelessWidget {
                                   Spacer(),
                                   IconButton(
                                     onPressed: () async {
-                                      SharedPreferences prefs = await SharedPreferences.getInstance();
-                                      String? userId = prefs.getString('userId');
-
-                                      if (userId == null) {
-                                        Get.snackbar("Error", "User ID not found. Please log in again.");
-                                        return;
-                                      }
-                                      bool? confirm = await showDialog(
+                                      showDialog(
                                         context: context,
                                         builder: (context) => AlertDialog(
                                           title: Text("Download CSV"),
                                           content: Text("Do you want to download the user data?"),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.of(context).pop(true),
+                                              onPressed: () async {
+                                                await userController.downloadCsv(user.userId.toString());
+                                                Navigator.of(context).pop(true);
+                                              },
                                               child: Text("Yes"),
                                             ),
                                             TextButton(
@@ -87,14 +100,9 @@ class UserListScreen extends StatelessWidget {
                                           ],
                                         ),
                                       );
-
-                                      if (confirm == true) {
-                                        await userController.downloadCsv(); // Call the download method
-                                      }
                                     },
                                     icon: Icon(Icons.download, color: Colors.blue),
                                   ),
-
                                 ],
                               ),
                             ),
@@ -114,4 +122,3 @@ class UserListScreen extends StatelessWidget {
     );
   }
 }
-

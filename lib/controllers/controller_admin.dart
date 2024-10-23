@@ -103,10 +103,10 @@ class AdminController extends GetxController {
         'phoneNo': phoneNoController.value.text,
       });
 
-      Get.snackbar("Success", "Admin details updated successfully!");
+      Get.snackbar("Success", "Admin details updated successfully!", colorText: Colors.white, backgroundColor: Colors.green, snackPosition: SnackPosition.TOP);
     } catch (e) {
       print("Error updating admin details: $e");
-      Get.snackbar("Error", "Failed to update admin details.");
+      Get.snackbar("Error", "Failed to update admin details.",  colorText: Colors.white, backgroundColor: Colors.red, snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
@@ -116,17 +116,30 @@ class AdminController extends GetxController {
     try {
       isLoading.value = true;
 
-      var snapshot = await FirebaseFirestore.instance.collection('admin').where('email', isEqualTo: email).limit(1).get();
+      // Fetch admin details where the email matches
+      var snapshot = await FirebaseFirestore.instance
+          .collection('admin')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
 
+      // If admin details are found, update controllers with the fetched data
       if (snapshot.docs.isNotEmpty) {
         var adminData = snapshot.docs.first.data();
         emailController.value.text = adminData['email'] ?? '';
         nameController.value.text = adminData['name'] ?? '';
         phoneNoController.value.text = adminData['phoneNo'] ?? '';
-        imageUrl.value = adminData['image'] ?? ''; // Fetch and store image URL
+        imageUrl.value = adminData['image'] ?? 'assets/images/logo.png'; // Fallback if no image found
       }
     } catch (e) {
-      Get.snackbar("Error", "Failed to fetch admin details.", colorText: Colors.white, backgroundColor: Colors.red, snackPosition: SnackPosition.TOP);
+      // Show error message using GetX's snackbar
+      Get.snackbar(
+        "Error",
+        "Failed to fetch admin details.",
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+        snackPosition: SnackPosition.TOP,
+      );
       print("Error fetching admin: $e");
     } finally {
       isLoading.value = false;

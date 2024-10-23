@@ -8,10 +8,14 @@ import 'package:image_picker/image_picker.dart'; // Import image_picker
 import '../controllers/controller_admin.dart';
 
 class ScreenAdminSignup extends StatefulWidget {
-  const ScreenAdminSignup({Key? key}) : super(key: key);
+  bool isUpdate;
 
   @override
   _ScreenAdminSignupState createState() => _ScreenAdminSignupState();
+
+  ScreenAdminSignup({
+    required this.isUpdate,
+  });
 }
 
 class _ScreenAdminSignupState extends State<ScreenAdminSignup> {
@@ -244,12 +248,13 @@ class _ScreenAdminSignupState extends State<ScreenAdminSignup> {
                       },
                     ),
                     const SizedBox(height: 30),
-                    // Signup button
                     Obx(
                           () => ElevatedButton(
                         onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            controller.adminSignUp(); // Call the signup method
+                          if (_formKey.currentState!.validate() && widget.isUpdate == false) {
+                            controller.adminSignUp();
+                          }else{
+                            controller.updateAdminDetails(controller.emailController.value.text);
                           }
                         },
                         child: controller.isLoading.value
