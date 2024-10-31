@@ -83,6 +83,7 @@ class UserController extends GetxController {
         }
         usersList.add(user);
       }
+
       log("Fetched ${usersList.length} users with their modules and dataByDate data.");
     } catch (e) {
       Get.snackbar('Error', 'Failed to fetch users and modules: $e');
