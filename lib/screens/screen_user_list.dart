@@ -13,6 +13,8 @@ class UserListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     userController.fetchAllUsers();
+    userController.fetchAllUsersWithModules();
+    log("Users details = ${userController.usersList}");
     log("Users List = ${userController.usersList}");
     return Scaffold(
       appBar: AppBar(
@@ -83,7 +85,6 @@ class UserListScreen extends StatelessWidget {
                                     onSelected: (value) async {
                                       if (value == 'download') {
                                         await userController.downloadCsv(user.userId.toString());
-                                        // await userController.fetchAllUsersWithModules();
                                       }
                                     },
                                     itemBuilder: (BuildContext context) {

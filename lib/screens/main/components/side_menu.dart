@@ -1,22 +1,27 @@
+import 'dart:developer';
+
 import 'package:admin/controllers/controller_admin.dart';
 import 'package:admin/screens/screen_add_retailers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
+import '../../../controllers/controller_user.dart';
 import '../../screen_add_users.dart';
 import '../../screen_profile.dart';
 import '../../screen_retailers_details.dart';
 import '../../screen_user_list.dart';
 
 class SideMenu extends StatelessWidget {
-  const SideMenu({
+  SideMenu({
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     AdminController controller = Get.put(AdminController());
+    final UserController userController = Get.put(UserController());
+
     return Drawer(
       child: ListView(
         children: [
@@ -45,7 +50,10 @@ class SideMenu extends StatelessWidget {
           DrawerListTile(
             title: "Users Details",
             svgSrc: "assets/icons/menu_dashboard.svg",
-            press: () {
+            press: ()async {
+              await userController.fetchAllUsersWithModules();
+              log("User modules data = ${userController.userModules}");
+              // await userController.fetchAllUsers();
               Get.to(() => UserListScreen());
             },
           ),
