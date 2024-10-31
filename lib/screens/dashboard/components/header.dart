@@ -1,4 +1,3 @@
-import 'package:admin/controllers/controller_download_data.dart';
 import 'package:admin/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -52,7 +51,6 @@ class ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    DownloadController downloadController = Get.put(DownloadController());
     return InkWell(
       onTap: () {},
       child: Container(
@@ -78,18 +76,9 @@ class ProfileCard extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () {
-                      // Trigger the input dialog to enter the collection name
-                      downloadController.showCollectionInputDialog();
-                    },
+                                         },
                     icon: Icon(Icons.download, color: Colors.white),
                   ),
-                  Obx(() {
-                    if (downloadController.isDownloading.value) {
-                      return CircularProgressIndicator(); // Show loader when downloading
-                    } else {
-                      return SizedBox.shrink(); // Hide loader
-                    }
-                  }),
                 ],
               ),
           ],

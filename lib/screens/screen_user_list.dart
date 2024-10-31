@@ -13,7 +13,7 @@ class UserListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     userController.fetchAllUsers();
-    log("Users  = ${userController.usersList}");
+    log("Users List = ${userController.usersList}");
     return Scaffold(
       appBar: AppBar(
         title: Text('Users List'),
@@ -34,7 +34,7 @@ class UserListScreen extends StatelessWidget {
                 TextField(
                   controller: searchController,
                   readOnly: true,
-                  onTap: (){
+                  onTap: () {
                     Get.to(() => SearchUserScreen(searchQuery: searchController.text.trim()));
                   },
                   decoration: InputDecoration(
@@ -78,30 +78,22 @@ class UserListScreen extends StatelessWidget {
                                     ],
                                   ),
                                   Spacer(),
-                                  IconButton(
-                                    onPressed: () async {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: Text("Download CSV"),
-                                          content: Text("Do you want to download the user data?"),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () async {
-                                                await userController.downloadCsv(user.userId.toString());
-                                                Navigator.of(context).pop(true);
-                                              },
-                                              child: Text("Yes"),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.of(context).pop(false),
-                                              child: Text("No"),
-                                            ),
-                                          ],
-                                        ),
-                                      );
+                                  PopupMenuButton<String>(
+                                    icon: Icon(Icons.more_vert, color: Colors.blue),
+                                    onSelected: (value) async {
+                                      if (value == 'download') {
+                                        await userController.downloadCsv(user.userId.toString());
+                                        // await userController.fetchAllUsersWithModules();
+                                      }
                                     },
-                                    icon: Icon(Icons.download, color: Colors.blue),
+                                    itemBuilder: (BuildContext context) {
+                                      return [
+                                        PopupMenuItem<String>(
+                                          value: 'download',
+                                          child: Text('Download CSV'),
+                                        ),
+                                      ];
+                                    },
                                   ),
                                 ],
                               ),

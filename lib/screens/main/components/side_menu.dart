@@ -46,7 +46,7 @@ class SideMenu extends StatelessWidget {
             title: "Users Details",
             svgSrc: "assets/icons/menu_dashboard.svg",
             press: () {
-             Get.to(UserListScreen());
+              Get.to(() => UserListScreen());
             },
           ),
           DrawerListTile(

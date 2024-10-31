@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Module {
   String? assetType;
   List<String> images; // Assuming images will be a list of URLs
@@ -26,10 +28,17 @@ class Module {
       location: doc['location'] as String?, // Explicitly casting
       retailerAddress: doc['retailerAddress'] as String?, // Explicitly casting
       retailerName: doc['retailerName'] as String?, // Explicitly casting
-      time: doc['time'] as String?, // Explicitly casting
-      visitDate: doc['visitDate'] as String?, // Explicitly casting
+      time: _convertTimestampToString(doc['time']), // Convert Timestamp to String
+      visitDate: _convertTimestampToString(doc['visitDate']), // Convert Timestamp to String
       companyAsset: doc['companyAsset'] as String?, // Explicitly casting
     );
+  }
+
+  static String? _convertTimestampToString(dynamic timestamp) {
+    if (timestamp is Timestamp) {
+      return timestamp.toDate().toIso8601String(); // Convert to String
+    }
+    return timestamp as String?; // Return as-is if it's already a String
   }
 
   Map<String, dynamic> toMap() {

@@ -7,6 +7,7 @@ class User {
   String? employeeId;
   String? designation;
   String? email;
+  String? deviceToken;
   String? region;
   String? mbu;
   String? userName;
@@ -27,6 +28,7 @@ class User {
     this.mbu,
     this.userAddress,
     this.userName,
+    this.deviceToken,
     this.password,
     this.imageUrl,
     this.linkedRetailers,
@@ -41,6 +43,7 @@ class User {
       fid: doc['fid'] as String?, // Explicitly casting
       employeeId: doc['employeeId'] as String?, // Explicitly casting
       email: doc['email'] as String?, // Explicitly casting
+      deviceToken: doc['deviceToken'] as String?, // Explicitly casting
       designation: doc['designation'] as String?, // Explicitly casting
       region: doc['region'] as String?, // Explicitly casting
       userAddress: doc['userAddress'] as String?, // Explicitly casting
@@ -67,6 +70,7 @@ class User {
       'fid': fid,
       'employeeId': employeeId,
       'email': email,
+      'deviceToken': deviceToken,
       'designation': designation,
       'region': region,
       'userName': userName,
