@@ -15,7 +15,7 @@ class UserListScreen extends StatelessWidget {
     userController.fetchAllUsers();
     userController.fetchAllUsersWithModules();
     log("Users details = ${userController.usersList}");
-    log("Users List = ${userController.usersList}");
+    log("User modules data = ${userController.userModules}");
     return Scaffold(
       appBar: AppBar(
         title: Text('Users List'),

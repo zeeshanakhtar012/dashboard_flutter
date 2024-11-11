@@ -30,15 +30,16 @@ class UserController extends GetxController {
   void onInit() {
     super.onInit();
     fetchAllUsers();
+    fetchAllUsersWithModules();
   }
-  Future<void> fetchAllUsers() async {
+  fetchAllUsers() async {
     try {
       isLoading(true);
       QuerySnapshot querySnapshot = await _firestore.collection('users').get();
       usersList.value = querySnapshot.docs.map((doc) {
         return User.fromDocumentSnapshot(doc.data() as Map<String, dynamic>);
       }).toList();
-      log("usersList = ${usersList.join(', ')}"); // Improved logging
+      log("Fetched users: ${usersList.join(', ')}");
     } catch (e) {
       Get.snackbar('Error', 'Failed to fetch users: $e');
     } finally {
@@ -56,129 +57,207 @@ class UserController extends GetxController {
         User user = User.fromDocumentSnapshot(userDoc.data() as Map<String, dynamic>);
         user.modules = [];
 
-        // Fetch modules
+        log("Fetching modules for user: ${user.userName} (User ID: ${userDoc.id})");
+
         QuerySnapshot modulesSnapshot = await userDoc.reference.collection('modules').get();
 
         for (var moduleDoc in modulesSnapshot.docs) {
           Module module = Module.fromMap(moduleDoc.data() as Map<String, dynamic>);
-
-          // Log fetched module data
-          log("Fetched module data: ${moduleDoc.data()}");
-
-          if (module.name == null || module.name!.isEmpty) {
-            log("Module name: ${moduleDoc.id}");
-          }
-
           module.dataByDate = [];
 
-          // Fetch dataByDate
-          QuerySnapshot dataByDateSnapshot = await moduleDoc.reference.collection('dataByDate').get();
+          try {
+            QuerySnapshot dataByDateSnapshot = await moduleDoc.reference.collection('dataByDate').get();
 
-          for (var dataDoc in dataByDateSnapshot.docs) {
-            var dataByDateItem = dataDoc.data() as Map<String, dynamic>;
-            module.dataByDate.add(dataByDateItem);
-            log("Fetched data for module '${module.name}': $dataByDateItem");
+            for (var dataDoc in dataByDateSnapshot.docs) {
+              var dataByDateItem = dataDoc.data() as Map<String, dynamic>;
+              module.dataByDate.add(dataByDateItem);
+            }
+          } catch (e) {
+            log("Error fetching dataByDate for module ${module.name}: $e");
           }
+
           user.modules.add(module);
         }
+
         usersList.add(user);
       }
-
-      log("Fetched ${usersList.length} users with their modules and dataByDate data.");
     } catch (e) {
       Get.snackbar('Error', 'Failed to fetch users and modules: $e');
-      log("Error fetching users: $e");
     } finally {
       isLoading(false);
     }
   }
 
-  Future<String> generateCsv(User user) async {
-    List<List<dynamic>> rows = [];
-    // Add header row
+  Future<String> generateCsv(String userId) async {
+    // Fetch user details
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .get();
+
+    if (!userSnapshot.exists) {
+      log("User not found");
+      return ""; // Return empty string if user is not found
+    }
+
+    // Extract user details
+    String userName = userSnapshot['userName'] ?? 'N/A';
+    String email = userSnapshot['email'] ?? 'N/A';
+    String designation = userSnapshot['designation'] ?? 'N/A';
+    String employeeId = userSnapshot['employeeId'] ?? 'N/A';
+    String phoneNumber = userSnapshot['phoneNumber'] ?? 'N/A';
+    String region = userSnapshot['region'] ?? 'N/A';
+    String mbu = userSnapshot['mbu'] ?? 'N/A';
+    String userAddress = userSnapshot['userAddress'] ?? 'N/A';
+
+    // Initialize CSV rows
+    List<List<String>> rows = [];
+    // Header row
     rows.add([
       "User ID",
       "User Name",
+      "Email",
+      "Designation",
+      "Employee ID",
+      "Phone Number",
+      "Region",
+      "MBU",
+      "User Address",
       "Module Name",
+      "Asset Type",
+      "Images",
       "Location",
-      "Retailer Name",
-      "Retailer Address",
-      "Visit Date",
-      "Time",
-      "Images"
+      "Time Uploaded",
+      "Date Uploaded"
     ]);
 
-    // Add user details and module data
-    for (var module in user.modules) {
-      for (var data in module.dataByDate) {
-        List<dynamic> row = [];
-        row.add(user.userId);  // User ID
-        row.add(user.userName);  // User Name
-        row.add(module.name);  // Module Name
-        row.add(data["location"]);  // Location
-        row.add(data["retailerName"]);  // Retailer Name
-        row.add(data["retailerAddress"]);  // Retailer Address
-        row.add(data["visitDate"]);  // Visit Date
-        row.add(data["time"]);  // Time
-        row.add((data["images"] as List?)?.join(', ') ?? "");  // Images (assuming it's a list)
-        rows.add(row);
+    // Fetch all modules for the user
+    QuerySnapshot moduleSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('modules')
+        .get();
+
+    log("Number of modules found: ${moduleSnapshot.docs.length}");
+
+    if (moduleSnapshot.docs.isNotEmpty) {
+      for (var moduleDoc in moduleSnapshot.docs) {
+        String moduleName = moduleDoc.id;
+
+        // Fetch dataByDate for each module
+        QuerySnapshot dataByDateSnapshot = await moduleDoc.reference.collection('dataByDate').get();
+        log("Found module: $moduleName with ${dataByDateSnapshot.docs.length} entries");
+
+        if (dataByDateSnapshot.docs.isNotEmpty) {
+          for (var dataDoc in dataByDateSnapshot.docs) {
+            // Extracting data
+            String assetType = dataDoc['assetType'] ?? 'N/A';
+            List<dynamic> images = dataDoc['images'] ?? [];
+            String location = dataDoc['location'] ?? 'N/A';
+            String timeUploaded = dataDoc['time']?.toDate().toString() ?? 'N/A'; // Format if necessary
+
+            // Create a new row for the CSV
+            rows.add([
+              userId,
+              userName,
+              email,
+              designation,
+              employeeId,
+              phoneNumber,
+              region,
+              mbu,
+              userAddress,
+              moduleName,
+              assetType,
+              images.join(", "), // Convert list to string
+              location,
+              timeUploaded,
+              DateFormat('yyyy-MM-dd').format(DateTime.now()) // Current date as Date Uploaded
+            ]);
+          }
+        } else {
+          // No entries found in dataByDate
+          rows.add([
+            userId,
+            userName,
+            email,
+            designation,
+            employeeId,
+            phoneNumber,
+            region,
+            mbu,
+            userAddress,
+            moduleName,
+            "N/A",
+            "N/A",
+            "N/A",
+            "N/A",
+            DateFormat('yyyy-MM-dd').format(DateTime.now()) // Current date as Date Uploaded
+          ]);
+        }
       }
+    } else {
+      // No modules found
+      rows.add([
+        userId,
+        userName,
+        email,
+        designation,
+        employeeId,
+        phoneNumber,
+        region,
+        mbu,
+        userAddress,
+        "No Modules",
+        "N/A",
+        "N/A",
+        "N/A",
+        "N/A",
+        DateFormat('yyyy-MM-dd').format(DateTime.now()) // Current date as Date Uploaded
+      ]);
     }
 
-    // Convert rows to CSV format
-    String csv = const ListToCsvConverter().convert(rows);
+    // Generate CSV
+    String csvData = const ListToCsvConverter().convert(rows);
+    log("Generated CSV Data:\n$csvData");
 
-    // Save CSV file
-    String fileName = '${user.userName}_modules.csv';
-    final directory = await getApplicationDocumentsDirectory();
-    final path = '${directory.path}/$fileName';
-    File file = File(path);
-    await file.writeAsString(csv);
-
-    log("CSV generated at: $path");
-    return path;  // Return the path of the generated CSV
+    return csvData; // Return the generated CSV data
   }
 
   Future<void> downloadCsv(String userId) async {
     try {
-      User? user = usersList.firstWhereOrNull((user) => user.userId == userId);
-
-      if (user == null) {
-        Get.snackbar("Error", "User not found");
+      String csvData = await generateCsv(userId);
+      if (csvData.isEmpty) {
+        Get.snackbar("Error", "CSV data is empty, user not found.");
         return;
       }
 
-      String csvData = await generateCsv(user);
-      String fileName = "user_report_${user.userName}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv";
+      String fileName = "user_report_${userId}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv";
 
+      // Web download logic or mobile download logic here
+      // For example:
       if (kIsWeb) {
-        // Web download logic here
+        // Web download logic
         final bytes = utf8.encode(csvData);
         final blob = html.Blob([Uint8List.fromList(bytes)], 'text/csv');
         final url = html.Url.createObjectUrlFromBlob(blob);
-
         final anchor = html.AnchorElement(href: url)
           ..setAttribute("download", fileName)
           ..click();
-
         html.Url.revokeObjectUrl(url);
         Get.snackbar("Success", "CSV file is being downloaded");
       } else {
-        // Mobile download logic here
+        // Mobile download logic
         final directory = await getApplicationDocumentsDirectory();
         final path = "${directory.path}/$fileName";
-        final file = File(path);
-
+        File file = File(path);
         await file.writeAsString(csvData);
         Get.snackbar("Success", "CSV saved at: $path");
       }
     } catch (e) {
-      print("Error: $e");
       Get.snackbar("Error", "Failed to download/save CSV: $e");
     }
   }
-
-
 
   /// save user to firestore
   Future<void> saveUserToFirestore(User user) async {

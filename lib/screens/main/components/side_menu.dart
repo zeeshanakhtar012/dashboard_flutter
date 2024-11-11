@@ -50,9 +50,7 @@ class SideMenu extends StatelessWidget {
           DrawerListTile(
             title: "Users Details",
             svgSrc: "assets/icons/menu_dashboard.svg",
-            press: ()async {
-              await userController.fetchAllUsersWithModules();
-              log("User modules data = ${userController.userModules}");
+            press: () {
               // await userController.fetchAllUsers();
               Get.to(() => UserListScreen());
             },

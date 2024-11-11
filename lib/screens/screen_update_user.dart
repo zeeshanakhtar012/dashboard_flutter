@@ -19,6 +19,7 @@ class _ScreenUpdateUserState extends State<ScreenUpdateUser> {
   User? user;
   var phoneNo = TextEditingController().obs;
   var userName = TextEditingController().obs;
+  var password = TextEditingController().obs;
   var userAddress = TextEditingController().obs;
   var email = TextEditingController().obs;
   var fid = TextEditingController().obs;
@@ -77,6 +78,7 @@ class _ScreenUpdateUserState extends State<ScreenUpdateUser> {
         employeeId: employeeId.value.text,
         mbu: mbu.value.text,
         userName: userName.value.text,
+        password: password.value.text,
         userAddress: userAddress.value.text,
         fid: fid.value.text,
         phoneNumber: phoneNo.value.text,
@@ -87,6 +89,7 @@ class _ScreenUpdateUserState extends State<ScreenUpdateUser> {
       phoneNo.value.clear();
       userName.value.clear();
       userAddress.value.clear();
+      password.value.clear();
       email.value.clear();
       fid.value.clear();
       employeeId.value.clear();
@@ -165,6 +168,10 @@ class _ScreenUpdateUserState extends State<ScreenUpdateUser> {
                     const SizedBox(height: 30),
                     _buildTextField(email, 'Email', Icons.email),
                     const SizedBox(height: 30),
+                    _buildTextField(phoneNo, 'Phone Number', Icons.phone),
+                    const SizedBox(height: 20),
+                    _buildTextField(password, 'Password', Icons.phone),
+                    const SizedBox(height: 20),
                     _buildTextField(phoneNo, 'Phone Number', Icons.phone),
                     const SizedBox(height: 20),
                     _buildTextField(userName, 'User Name', Icons.drive_file_rename_outline),
