@@ -25,13 +25,52 @@ class UserController extends GetxController {
   var isLoading = false.obs;
   var userModules = <Map<String, dynamic>>[].obs;
   var searchUserByName = TextEditingController().obs;
+  List<String> validModules = [
+    "MarketIntelligence",
+    "MarketVisit",
+    "NewAsset",
+    "TradeAsset",
+  ];
+
+  // fetch user details modules data
+  Future<void> fetchAllUsersWithModules() async {
+    try {
+      isLoading(true);
+      QuerySnapshot usersSnapshot = await _firestore.collection('users').get();
+
+      // Clear existing data only if necessary, otherwise leave it intact
+      if (usersList.isNotEmpty) usersList.clear();
+
+      // Fetch users in parallel
+      await Future.wait(usersSnapshot.docs.map((userDoc) async {
+        User user = User.fromDocumentSnapshot(userDoc.data() as Map<String, dynamic>);
+        user.modules = [];
+        QuerySnapshot modulesSnapshot = await userDoc.reference.collection('modules').get();
+        await Future.wait(modulesSnapshot.docs.map((moduleDoc) async {
+          Module module = Module.fromMap(moduleDoc.data() as Map<String, dynamic>);
+          module.dataByDate = [];
+          QuerySnapshot dataByDateSnapshot = await moduleDoc.reference.collection('dataByDate').get();
+          module.dataByDate.addAll(dataByDateSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>));
+          user.modules.add(module);
+        }));
+
+        // Add user to usersList once the modules have been processed
+        usersList.add(user);
+        log("Fetched users with modules: ${usersList.join(', ')}");
+      }));
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to fetch users and modules: $e');
+    } finally {
+      isLoading(false);
+    }
+  }
 
   @override
   void onInit() {
     super.onInit();
     fetchAllUsers();
-    fetchAllUsersWithModules();
   }
+
   fetchAllUsers() async {
     try {
       isLoading(true);
@@ -47,60 +86,64 @@ class UserController extends GetxController {
     }
   }
 
-  Future<void> fetchAllUsersWithModules() async {
-    try {
-      isLoading(true);
-      QuerySnapshot usersSnapshot = await _firestore.collection('users').get();
-      usersList.clear();
+  Future<void> fetchUserData(String userId) async {
+    // Reference to the user's document
+    final userDocRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
-      for (var userDoc in usersSnapshot.docs) {
-        User user = User.fromDocumentSnapshot(userDoc.data() as Map<String, dynamic>);
-        user.modules = [];
+    // Fetch the user details
+    DocumentSnapshot userSnapshot = await userDocRef.get();
+    if (userSnapshot.exists) {
+      var userData = userSnapshot.data();
+      log("Fetched user details: $userData");
 
-        log("Fetching modules for user: ${user.userName} (User ID: ${userDoc.id})");
+      // Reference to the 'modules' subcollection
+      final modulesRef = userDocRef.collection('modules');
 
-        QuerySnapshot modulesSnapshot = await userDoc.reference.collection('modules').get();
+      // Fetch modules (like MarketIntelligence, MarketVisit, etc.)
+      QuerySnapshot modulesSnapshot = await modulesRef.get();
+      log("Modules snapshot count: ${modulesSnapshot.docs.length}");
 
+      if (modulesSnapshot.docs.isNotEmpty) {
         for (var moduleDoc in modulesSnapshot.docs) {
-          Module module = Module.fromMap(moduleDoc.data() as Map<String, dynamic>);
-          module.dataByDate = [];
+          log("Fetched module: ${moduleDoc.id}");
 
-          try {
-            QuerySnapshot dataByDateSnapshot = await moduleDoc.reference.collection('dataByDate').get();
+          // Fetch the 'dataByDate' subcollection for each module
+          final dataByDateRef = moduleDoc.reference.collection('dataByDate');
+          QuerySnapshot dataByDateSnapshot = await dataByDateRef.get();
 
+          log("Data by date snapshot count for module ${moduleDoc.id}: ${dataByDateSnapshot.docs.length}");
+
+          if (dataByDateSnapshot.docs.isNotEmpty) {
             for (var dataDoc in dataByDateSnapshot.docs) {
-              var dataByDateItem = dataDoc.data() as Map<String, dynamic>;
-              module.dataByDate.add(dataByDateItem);
+              print("Fetched data document with ID: ${dataDoc.id}");
+              var data = dataDoc.data();
+
+              // Merge the user data and module data here
+              // Example: user data + module data (dataDoc.data)
+              // You can now process or store this merged data for CSV generation or other purposes
             }
-          } catch (e) {
-            log("Error fetching dataByDate for module ${module.name}: $e");
+          } else {
+            log("No data found in dataByDate for module: ${moduleDoc.id}");
           }
-
-          user.modules.add(module);
         }
-
-        usersList.add(user);
+      } else {
+        log("No modules found for user: $userId");
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch users and modules: $e');
-    } finally {
-      isLoading(false);
+    } else {
+      log("User document not found for userId: $userId");
     }
   }
-
+  // generate csv file
   Future<String> generateCsv(String userId) async {
-    // Fetch user details
-    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .get();
-
+    // Fetch user details from Firestore
+    DocumentSnapshot userSnapshot =
+    await FirebaseFirestore.instance.collection('users').doc(userId).get();
     if (!userSnapshot.exists) {
       log("User not found");
-      return ""; // Return empty string if user is not found
+      return "";
     }
 
-    // Extract user details
+    // Extract user details from the snapshot
     String userName = userSnapshot['userName'] ?? 'N/A';
     String email = userSnapshot['email'] ?? 'N/A';
     String designation = userSnapshot['designation'] ?? 'N/A';
@@ -110,9 +153,10 @@ class UserController extends GetxController {
     String mbu = userSnapshot['mbu'] ?? 'N/A';
     String userAddress = userSnapshot['userAddress'] ?? 'N/A';
 
-    // Initialize CSV rows
+    // Initialize the CSV rows
     List<List<String>> rows = [];
-    // Header row
+
+    // Add header row
     rows.add([
       "User ID",
       "User Name",
@@ -124,59 +168,74 @@ class UserController extends GetxController {
       "MBU",
       "User Address",
       "Module Name",
-      "Asset Type",
+      "Company Asset Type",
+      "Retailer Name",
+      "Retailer Address",
+      "Location",
+      "Field 5",
       "Images",
       "Location",
       "Time Uploaded",
-      "Date Uploaded"
+      "Date Uploaded",
+      "Visit Date"
     ]);
 
-    // Fetch all modules for the user
-    QuerySnapshot moduleSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('modules')
-        .get();
+    // Predefined list of valid module names
+    List<String> validModules = [
+      "MarketIntelligence",
+      "MarketVisit",
+      "NewAsset",
+      "TradeAsset",
+    ];
 
-    log("Number of modules found: ${moduleSnapshot.docs.length}");
+    bool hasModulesData = false; // Flag to track if modules data is found
 
-    if (moduleSnapshot.docs.isNotEmpty) {
-      for (var moduleDoc in moduleSnapshot.docs) {
-        String moduleName = moduleDoc.id;
+    for (String moduleName in validModules) {
+      try {
+        // Fetch the dataByDate collection
+        QuerySnapshot dataByDateSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('modules')
+            .doc(moduleName)
+            .collection('dataByDate')
+            .get();
 
-        // Fetch dataByDate for each module
-        QuerySnapshot dataByDateSnapshot = await moduleDoc.reference.collection('dataByDate').get();
-        log("Found module: $moduleName with ${dataByDateSnapshot.docs.length} entries");
+        if (dataByDateSnapshot.docs.isEmpty) {
+          log("No data found in module $moduleName for user $userId");
+          continue;
+        }
 
-        if (dataByDateSnapshot.docs.isNotEmpty) {
-          for (var dataDoc in dataByDateSnapshot.docs) {
-            // Extracting data
-            String assetType = dataDoc['assetType'] ?? 'N/A';
-            List<dynamic> images = dataDoc['images'] ?? [];
-            String location = dataDoc['location'] ?? 'N/A';
-            String timeUploaded = dataDoc['time']?.toDate().toString() ?? 'N/A'; // Format if necessary
+        hasModulesData = true; // Modules data found
 
-            // Create a new row for the CSV
-            rows.add([
-              userId,
-              userName,
-              email,
-              designation,
-              employeeId,
-              phoneNumber,
-              region,
-              mbu,
-              userAddress,
-              moduleName,
-              assetType,
-              images.join(", "), // Convert list to string
-              location,
-              timeUploaded,
-              DateFormat('yyyy-MM-dd').format(DateTime.now()) // Current date as Date Uploaded
-            ]);
-          }
-        } else {
-          // No entries found in dataByDate
+        // Process each document in the dataByDate collection
+        for (var doc in dataByDateSnapshot.docs) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+          // Extract and handle array fields
+          List<String> images =
+              (data['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+                  ['N/A'];
+          String imageList = images.join(", "); // Convert list to a comma-separated string
+
+          // Handle Timestamp fields safely
+          String timeUploaded = (data['timeUploaded'] is Timestamp)
+              ? (data['timeUploaded'] as Timestamp).toDate().toIso8601String()
+              : 'N/A';
+          String dateUploaded = (data['dateUploaded'] is Timestamp)
+              ? (data['dateUploaded'] as Timestamp).toDate().toIso8601String()
+              : 'N/A';
+
+          // Handle other fields safely
+          String assetType = data['assetType'] ?? 'N/A';
+          String location = data['location'] ?? 'N/A';
+          String visitDate = (data['visitDate'] is Timestamp)
+              ? (data['visitDate'] as Timestamp).toDate().toIso8601String()
+              : 'N/A';
+          String retailerName = data['retailerName'] ?? 'N/A';
+          String retailerAddress = data['retailerAddress'] ?? 'N/A';
+
+          // Add row for each document
           rows.add([
             userId,
             userName,
@@ -188,16 +247,25 @@ class UserController extends GetxController {
             mbu,
             userAddress,
             moduleName,
-            "N/A",
-            "N/A",
-            "N/A",
-            "N/A",
-            DateFormat('yyyy-MM-dd').format(DateTime.now()) // Current date as Date Uploaded
+            assetType,
+            retailerName,
+            retailerAddress,
+            location,
+            timeUploaded,
+            imageList,
+            location,
+            timeUploaded,
+            dateUploaded,
+            visitDate,
           ]);
         }
+      } catch (e) {
+        log("Error fetching module data for $moduleName: $e");
       }
-    } else {
-      // No modules found
+    }
+
+    // If no modules were found, add a row with 'N/A'
+    if (!hasModulesData) {
       rows.add([
         userId,
         userName,
@@ -208,22 +276,24 @@ class UserController extends GetxController {
         region,
         mbu,
         userAddress,
-        "No Modules",
         "N/A",
         "N/A",
         "N/A",
         "N/A",
-        DateFormat('yyyy-MM-dd').format(DateTime.now()) // Current date as Date Uploaded
+        "N/A",
+        "N/A",
+        "N/A",
+        "N/A",
       ]);
     }
 
-    // Generate CSV
+    // Convert the rows into CSV format
     String csvData = const ListToCsvConverter().convert(rows);
     log("Generated CSV Data:\n$csvData");
 
     return csvData; // Return the generated CSV data
   }
-
+  // download csv fil
   Future<void> downloadCsv(String userId) async {
     try {
       String csvData = await generateCsv(userId);
@@ -232,7 +302,8 @@ class UserController extends GetxController {
         return;
       }
 
-      String fileName = "user_report_${userId}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv";
+      String fileName =
+          "user_report_${userId}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv";
 
       // Web download logic or mobile download logic here
       // For example:
@@ -245,21 +316,27 @@ class UserController extends GetxController {
           ..setAttribute("download", fileName)
           ..click();
         html.Url.revokeObjectUrl(url);
-        Get.snackbar("Success", "CSV file is being downloaded");
+        Get.snackbar(
+          snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.green,
+            "Success", "CSV file is being downloaded");
       } else {
-        // Mobile download logic
+
         final directory = await getApplicationDocumentsDirectory();
         final path = "${directory.path}/$fileName";
         File file = File(path);
         await file.writeAsString(csvData);
-        Get.snackbar("Success", "CSV saved at: $path");
+        Get.snackbar(
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.green,
+            "Success", "CSV saved at: $path");
       }
     } catch (e) {
       Get.snackbar("Error", "Failed to download/save CSV: $e");
     }
   }
 
-  /// save user to firestore
+  // save user to firestore
   Future<void> saveUserToFirestore(User user) async {
     FirebaseFirestore.instance
         .collection('users')
@@ -267,11 +344,11 @@ class UserController extends GetxController {
         .set(user.toMap())
         .then((_) {
       print("User saved successfully!");
-    })
-        .catchError((error) {
+    }).catchError((error) {
       print("Failed to save user: $error");
     });
   }
+
   // Method to remove a user from Firestore by userId
   Future<void> removeUserFromFirestore(String userId) async {
     try {
@@ -285,9 +362,11 @@ class UserController extends GetxController {
       print("Error removing user: $e");
     }
   }
-  /// get users from firestore
+
+  // get users from firestore
   Future<User?> getUserFromFirestore(String userId) async {
-    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    DocumentSnapshot doc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
     if (doc.exists) {
       return User.fromDocumentSnapshot(doc.data() as Map<String, dynamic>);
@@ -296,12 +375,15 @@ class UserController extends GetxController {
   }
 
   // Update user details
-
   Future<void> updateUserInFirestore(User user) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(user.userId).get();
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(user.userId).get();
       if (doc.exists) {
-        await _firestore.collection('users').doc(user.userId).update(user.toMap());
+        await _firestore
+            .collection('users')
+            .doc(user.userId)
+            .update(user.toMap());
         Get.snackbar("Success", "User updated successfully!",
             backgroundColor: Colors.green, colorText: Colors.white);
       } else {
@@ -313,17 +395,19 @@ class UserController extends GetxController {
     }
   }
 
-
   // Add this method to UserController
-
   Future<void> searchUsersByUsername(String username) async {
     try {
       isLoading(true);
       String trimmedUsername = username.trim();
       QuerySnapshot querySnapshot = await _firestore
           .collection('users')
-          .where('userName', isGreaterThanOrEqualTo: trimmedUsername)  // Start matching from the trimmed username
-          .where('userName', isLessThanOrEqualTo: trimmedUsername + '\uf8ff') // Include all possible endings
+          .where('userName',
+              isGreaterThanOrEqualTo:
+                  trimmedUsername) // Start matching from the trimmed username
+          .where('userName',
+              isLessThanOrEqualTo:
+                  trimmedUsername + '\uf8ff') // Include all possible endings
           .get();
 
       usersList.value = querySnapshot.docs.map((doc) {
@@ -339,36 +423,8 @@ class UserController extends GetxController {
       isLoading(false);
     }
   }
-  // Fetch user modules
-  Future<void> fetchUserModules() async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userId = prefs.getString('userId');
 
-      if (userId != null) {
-        QuerySnapshot querySnapshot = await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('modules')
-            .get(); // Fetch the modules sub-collection
-
-        if (querySnapshot.docs.isNotEmpty) {
-          List<Map<String, dynamic>> moduleList = querySnapshot.docs
-              .map((doc) => doc.data() as Map<String, dynamic>)
-              .toList();
-          log("User modules fetched successfully: $moduleList");
-        } else {
-          log("No modules found for this user.");
-          Get.snackbar('No Modules Found', 'This user has no modules.', snackPosition: SnackPosition.BOTTOM);
-        }
-      } else {
-        log('User ID not found. Cannot fetch modules.');
-      }
-    } catch (e) {
-      log("Error fetching user modules: $e");
-      Get.snackbar('Error', 'Failed to fetch modules: $e', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red);
-    }
-  }
+  //
   Future<void> fetchUserListWithModules() async {
     try {
       // Fetch all users from the 'users' collection
@@ -383,7 +439,12 @@ class UserController extends GetxController {
 
         // Initialize a map to store module data for this user
         Map<String, dynamic> modulesData = {};
-        List<String> moduleNames = ['MarketVisit', 'MarketIntelligence', 'NewAsset', 'TradeAsset'];
+        List<String> moduleNames = [
+          'MarketVisit',
+          'MarketIntelligence',
+          'NewAsset',
+          'TradeAsset'
+        ];
 
         // Fetch each module's subcollection data
         for (String moduleName in moduleNames) {
@@ -396,7 +457,8 @@ class UserController extends GetxController {
 
           if (moduleSnapshot.exists) {
             Map<String, dynamic>? moduleData = moduleSnapshot.data();
-            modulesData[moduleName] = moduleData ?? {};  // Store the module data in the map
+            modulesData[moduleName] =
+                moduleData ?? {}; // Store the module data in the map
             log('$moduleName data for User $userId: $moduleData');
           } else {
             log('$moduleName data not found for User $userId');
@@ -410,7 +472,4 @@ class UserController extends GetxController {
       log('Error fetching users with modules: $e');
     }
   }
-
-
 }
-

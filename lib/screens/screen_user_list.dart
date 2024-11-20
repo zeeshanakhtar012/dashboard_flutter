@@ -1,21 +1,24 @@
 import 'dart:developer';
 import 'package:admin/screens/screen_data_user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../controllers/controller_user.dart';
 import 'screen_search_user.dart'; // Import the SearchUserScreen
 
-class UserListScreen extends StatelessWidget {
+class UserListScreen extends StatefulWidget {
+  @override
+  State<UserListScreen> createState() => _UserListScreenState();
+}
+
+class _UserListScreenState extends State<UserListScreen> {
   final UserController userController = Get.put(UserController());
-  final TextEditingController searchController = TextEditingController(); // Text editing controller for search
+
+  final TextEditingController searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    userController.fetchAllUsers();
-    userController.fetchAllUsersWithModules();
-    log("Users details = ${userController.usersList}");
-    log("User modules data = ${userController.userModules}");
     return Scaffold(
       appBar: AppBar(
         title: Text('Users List'),
@@ -75,14 +78,15 @@ class UserListScreen extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('User: ${user.userName}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                      Text('Email: ${user.email}', style: TextStyle(fontSize: 12)),
+                                      Text('${user.userName}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                      Text('${user.email}', style: TextStyle(fontSize: 12)),
                                     ],
                                   ),
                                   Spacer(),
                                   PopupMenuButton<String>(
                                     icon: Icon(Icons.more_vert, color: Colors.blue),
                                     onSelected: (value) async {
+                                      await userController.fetchUserData(user.userId.toString());
                                       if (value == 'download') {
                                         await userController.downloadCsv(user.userId.toString());
                                       }

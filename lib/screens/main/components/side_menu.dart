@@ -20,7 +20,6 @@ class SideMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     AdminController controller = Get.put(AdminController());
-    final UserController userController = Get.put(UserController());
 
     return Drawer(
       child: ListView(

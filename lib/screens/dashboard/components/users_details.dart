@@ -12,8 +12,8 @@ class UserDetailsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller.fetchAllUsers();
-    log("User Data =  ${controller.usersList}");
+    // controller.fetchAllUsers();
+    // log("User Data =  ${controller.usersList}");
 
     return Container(
       padding: const EdgeInsets.all(16.0),
