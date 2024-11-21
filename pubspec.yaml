@@ -15,7 +15,7 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10
   get: ^4.6.6
-  flutter_screenutil: ^5.9.3
+#  flutter_screenutil: ^5.9.3
   firebase_core: ^3.6.0
   cloud_firestore: ^5.4.4
   firebase_auth: ^5.3.1
@@ -30,6 +30,7 @@ dependencies:
   path_provider: ^2.1.4
   desktop_window: ^0.4.1
   share_plus: ^10.1.1
+  file_picker: ^8.1.4
 
 
 dev_dependencies:

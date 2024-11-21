@@ -4,7 +4,6 @@ import 'package:admin/main.dart';
 import 'package:admin/screens/screen_add_users.dart';
 import 'package:admin/screens/screen_update_user.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controllers/controller_user.dart';
 

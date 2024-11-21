@@ -1,7 +1,6 @@
 import 'package:admin/controllers/controller_retailers.dart';
 import 'package:admin/screens/screen_add_retailers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../models/retailers.dart';
 
@@ -26,7 +25,7 @@ class ScreenRetailersDetails extends StatelessWidget {
         title: Text(
           "Admin Panel",
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: 16,
             color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
