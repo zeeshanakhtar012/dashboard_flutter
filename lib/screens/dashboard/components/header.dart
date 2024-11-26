@@ -1,12 +1,8 @@
 import 'package:admin/controllers/controller_user.dart';
 import 'package:admin/responsive.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-
 import '../../../constants.dart';
-import '../../screen_profile.dart';
-import '../../screen_search.dart';
 
 class Header extends StatelessWidget {
   Header({
@@ -76,40 +72,6 @@ class Header extends StatelessWidget {
             ),
           );
         }),
-        Obx(() {
-          return userController.isLoading.value? CircularProgressIndicator(): InkWell(
-            onTap: () async {
-              await userController.pickAndUploadCSV();
-            },
-            child: Container(
-              margin: EdgeInsets.only(left: defaultPadding),
-              padding: EdgeInsets.symmetric(
-                horizontal: defaultPadding,
-                vertical: defaultPadding / 2,
-              ),
-              decoration: BoxDecoration(
-                color: secondaryColor,
-                borderRadius: const BorderRadius.all(Radius.circular(10)),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.file_copy, color: Colors.white),
-                  if (!Responsive.isMobile(context))
-                    Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text("Upload Users"),
-                        ),
-                        Icon(Icons.upload, color: Colors.white),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          );
-        })
       ],
     );
   }

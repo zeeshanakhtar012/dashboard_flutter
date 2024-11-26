@@ -22,6 +22,7 @@ import 'dart:typed_data';
 
 class UserController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   var userData = Map<String, dynamic>().obs;
   var usersList = <User>[].obs;
   var isLoading = false.obs;
@@ -258,7 +259,8 @@ class UserController extends GetxController {
       "Retailer Name",
       "Retailer Address",
       "Location",
-      "Field 5",
+      "Longitude",
+      "Latitude",
       "Images",
       "Location",
       "Time Uploaded",
@@ -301,33 +303,28 @@ class UserController extends GetxController {
 
           // Extract and handle `time` field (as Timestamp)
           String time = data.containsKey('time') && data['time'] is Timestamp
-              ? (data['time'] as Timestamp).toDate().toIso8601String()
+              ? DateFormat('MM/dd/yyyy hh:mm a').format((data['time'] as Timestamp).toDate())
               : 'N/A';
 
           // Extract and handle `visitDate` field (as Timestamp)
           String visitDate = data.containsKey('visitDate') && data['visitDate'] is Timestamp
-              ? (data['visitDate'] as Timestamp).toDate().toIso8601String()
+              ? DateFormat('dd-MMM-yyyy hh:mm a')
+              .format((data['visitDate'] as Timestamp).toDate())
               : 'N/A';
 
-          // Handle other fields safely
           String assetType = data['assetType'] ?? 'N/A';
           String location = data['location'] ?? 'N/A';
           String retailerName = data['retailerName'] ?? 'N/A';
           String retailerAddress = data['retailerAddress'] ?? 'N/A';
-
-          // Handle images list
+          String lat = data['latitude'] ?? 'N/A';
+          String longitude = data['longitude'] ?? 'N/A';
           List<String> images = (data['images'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
               ['N/A'];
-          String imageList = images.join(", "); // Convert list to a comma-separated string
-
-          // Log the fetched data for debugging
+          String imageList = images.join(", ");
           log("time: $time, visitDate: $visitDate");
-
-          // Add a new row for each module's data, keeping user details in place
           rows.add([
-            // Add user details only once in the first row
             (rows.length == 1) ? userId : '',
             (rows.length == 1) ? userName : '',
             (rows.length == 1) ? email : '',
@@ -341,11 +338,12 @@ class UserController extends GetxController {
             assetType,
             retailerName,
             retailerAddress,
+            lat,
+            longitude,
             location,
             "N/A", // Placeholder for Field 5
             imageList,
             location,
-            time, // Time Uploaded
             time, // Duplicate time as Date Uploaded
             visitDate,
           ]);

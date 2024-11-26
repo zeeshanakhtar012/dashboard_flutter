@@ -3,14 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/controller_user.dart';
 
-class SearchUserScreen extends StatelessWidget {
-  final UserController userController = Get.put(UserController());
-  final TextEditingController searchController = TextEditingController();
+class SearchUserScreen extends StatefulWidget {
   final String searchQuery;
 
   SearchUserScreen({Key? key, required this.searchQuery}) : super(key: key) {
-    searchController.text = searchQuery;
+
   }
+
+  @override
+  State<SearchUserScreen> createState() => _SearchUserScreenState();
+}
+
+class _SearchUserScreenState extends State<SearchUserScreen> {
+  final UserController userController = Get.put(UserController());
+
+  final TextEditingController searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +37,15 @@ class SearchUserScreen extends StatelessWidget {
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
                   onPressed: () async {
-                    // Trigger search when the user taps the search icon
-                    if (searchController.text.isNotEmpty) {
-                      await userController.searchUsersByUsername(searchController.text.trim());
-                    } else {
-                      Get.snackbar('Input Error', 'Please enter a username to search.');
-                    }
+                    setState(() async {
+                      if (searchController.text.isNotEmpty) {
+                        await userController.searchUsersByUsername(
+                            searchController.text.trim());
+                      } else {
+                        Get.snackbar('Input Error',
+                            'Please enter a username to search.');
+                      }
+                    });
                   },
                 ),
               ),
@@ -45,7 +55,8 @@ class SearchUserScreen extends StatelessWidget {
               // Check if the search has been performed and usersList is updated
               if (userController.isLoading.value) {
                 return Center(child: CircularProgressIndicator());
-              } else if (userController.usersList.isEmpty && searchController.text.isNotEmpty) {
+              } else if (userController.usersList.isEmpty &&
+                  searchController.text.isNotEmpty) {
                 return Center(child: Text('No users found'));
               } else {
                 return ListView.builder(
@@ -59,14 +70,16 @@ class SearchUserScreen extends StatelessWidget {
                         radius: 25,
                         backgroundImage: user.imageUrl != null
                             ? NetworkImage(user.imageUrl!)
-                            : NetworkImage("https://cdn-icons-png.flaticon.com/512/149/149071.png"),
+                            : NetworkImage(
+                                "https://cdn-icons-png.flaticon.com/512/149/149071.png"),
                       ),
                       title: Text(user.userName ?? "Unknown"),
                       subtitle: Text(user.email ?? "No email"),
                       trailing: IconButton(
                         icon: Icon(Icons.download),
                         onPressed: () async {
-                          await userController.downloadCsv(user.userId.toString());
+                          await userController
+                              .downloadCsv(user.userId.toString());
                           log("CSV downloaded for user: ${user.userName}");
                         },
                       ),

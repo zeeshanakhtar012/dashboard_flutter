@@ -1,20 +1,30 @@
 import 'dart:developer';
-import 'package:admin/controllers/controller_user.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../models/user.dart';
 import '../../user_details_screen.dart';
+import '../../../controllers/controller_user.dart';
 
-class UserDetailsTable extends StatelessWidget {
-  UserDetailsTable({Key? key}) : super(key: key);
+class UserDetailsTable extends StatefulWidget {
+  @override
+  _UserDetailsTableState createState() => _UserDetailsTableState();
+}
 
+class _UserDetailsTableState extends State<UserDetailsTable> {
   final UserController controller = Get.put(UserController());
 
   @override
-  Widget build(BuildContext context) {
-    // controller.fetchAllUsers();
-    // log("User Data =  ${controller.usersList}");
+  void initState() {
+    super.initState();
+    _fetchData(); // Fetch data on initialization
+  }
 
+  void _fetchData() {
+    controller.fetchAllUsers();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -77,7 +87,7 @@ class UserDetailsTable extends StatelessWidget {
   }
 }
 
-// Modify userDataRow to accept a User object
+// Helper Functions
 DataRow userDataRow(User userInfo, BuildContext context) {
   return DataRow(
     cells: [
@@ -91,14 +101,14 @@ DataRow userDataRow(User userInfo, BuildContext context) {
             radius: 20,
             child: userInfo.imageUrl != null && userInfo.imageUrl!.isNotEmpty
                 ? ClipOval(
-                  child: Image.network(
-                                userInfo.imageUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
+              child: Image.network(
+                userInfo.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
                   return Image.asset('assets/images/profile_pic.png', fit: BoxFit.cover);
-                                },
-                              ),
-                )
+                },
+              ),
+            )
                 : Image.asset('assets/images/profile_pic.png', fit: BoxFit.cover),
           ),
         ),
@@ -110,7 +120,7 @@ DataRow userDataRow(User userInfo, BuildContext context) {
         IconButton(
           icon: Icon(Icons.delete, color: Colors.white),
           onPressed: () {
-            _showUserOptionsDialog(context, userInfo);
+            _showDeleteConfirmationDialog(context, userInfo);
           },
         ),
       ),
@@ -118,75 +128,6 @@ DataRow userDataRow(User userInfo, BuildContext context) {
   );
 }
 
-// Show dialog with options to edit or delete user
-void _showUserOptionsDialog(BuildContext context, User user) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        content: Text('You are going to delete ${user.userName}'),
-        actions: [
-          TextButton(
-            child: Text('Delete'),
-            onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-              _showDeleteConfirmationDialog(context, user);
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
-// Show edit user dialog
-// void _showEditUserDialog(BuildContext context, User user) {
-//   TextEditingController nameController = TextEditingController(text: user.userName);
-//   TextEditingController addressController = TextEditingController(text: user.userAddress);
-//
-//   showDialog(
-//     context: context,
-//     builder: (BuildContext context) {
-//       return AlertDialog(
-//         title: Text('Edit User'),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             TextField(
-//               controller: nameController,
-//               decoration: InputDecoration(labelText: 'Name'),
-//             ),
-//             TextField(
-//               controller: addressController,
-//               decoration: InputDecoration(labelText: 'Address'),
-//             ),
-//           ],
-//         ),
-//         actions: [
-//           TextButton(
-//             child: Text('Cancel'),
-//             onPressed: () {
-//               Navigator.of(context).pop();
-//             },
-//           ),
-//           TextButton(
-//             child: Text('Save'),
-//             onPressed: () {
-//               // User updatedUser = user.copyWith(
-//               //   userName: nameController.text,
-//               //   userAddress: addressController.text,
-//               // );
-//               // Get.find<UserController>().updateUserInFirestore(updatedUser);
-//               Navigator.of(context).pop(); // Close the dialog after saving
-//             },
-//           ),
-//         ],
-//       );
-//     },
-//   );
-// }
-
-// Show delete confirmation dialog
 void _showDeleteConfirmationDialog(BuildContext context, User user) {
   showDialog(
     context: context,

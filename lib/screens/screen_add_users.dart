@@ -8,6 +8,7 @@ import '../models/user.dart';
 
 class ScreenAddUsers extends StatefulWidget {
   final bool isUpdate;
+
   const ScreenAddUsers({Key? key, required this.isUpdate}) : super(key: key);
 
   @override
@@ -31,11 +32,13 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+    await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       final Uint8List byteData = await pickedFile.readAsBytes();
-      String downloadUrl = await _uploadImageToFirebase(byteData, pickedFile.name);
+      String downloadUrl =
+      await _uploadImageToFirebase(byteData, pickedFile.name);
       setState(() {
         imageUrl = downloadUrl;
       });
@@ -56,7 +59,10 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
 
   Future<void> _saveUser() async {
     if (!_formKey.currentState!.validate()) {
-      Get.snackbar('Error', 'Please fill all required fields', backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
+      Get.snackbar('Error', 'Please fill all required fields',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP);
       return;
     }
 
@@ -66,7 +72,10 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
 
     try {
       UserController controller = Get.put(UserController());
-      final userId = DateTime.now().millisecondsSinceEpoch.toString();
+      final userId = DateTime
+          .now()
+          .millisecondsSinceEpoch
+          .toString();
       final user = User(
         userId: userId,
         designation: designation.value.text,
@@ -99,9 +108,15 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
       mbu.value.clear();
       designation.value.clear();
 
-      Get.snackbar('Success', 'User added successfully!', backgroundColor: Colors.green, colorText: Colors.white, snackPosition: SnackPosition.TOP);
+      Get.snackbar('Success', 'User added successfully!',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP);
     } catch (error) {
-      Get.snackbar('Error', 'Failed to add user: $error', backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Error', 'Failed to add user: $error',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM);
     } finally {
       setState(() {
         _isLoading = false;
@@ -109,11 +124,31 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
     }
   }
 
+  final userController = Get.put(UserController());
+
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
     return Scaffold(
       appBar: AppBar(
+        actions: [
+          Obx(() {
+            return userController.isLoading.value? CircularProgressIndicator():TextButton(
+                onPressed: () async {
+                  await userController.pickAndUploadCSV();
+                },
+                child: Text(
+                  "Add Bulk User",
+                  style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
+                ));
+          })
+        ],
         leading: IconButton(
           onPressed: () {
             Get.back();
@@ -155,8 +190,12 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
                         backgroundColor: Colors.grey[300],
                         backgroundImage: imageUrl != null
                             ? NetworkImage(imageUrl!)
-                            : NetworkImage("https://cdn-icons-png.flaticon.com/512/149/149071.png") as ImageProvider,
-                        child: imageUrl == null ? Icon(Icons.add_a_photo, size: 30) : null,
+                            : NetworkImage(
+                            "https://cdn-icons-png.flaticon.com/512/149/149071.png")
+                        as ImageProvider,
+                        child: imageUrl == null
+                            ? Icon(Icons.add_a_photo, size: 30)
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -168,7 +207,8 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
                     const SizedBox(height: 20),
                     _buildTextField(userName, 'User Name', Icons.person),
                     const SizedBox(height: 20),
-                    _buildTextField(userAddress, 'User Address', Icons.location_on),
+                    _buildTextField(
+                        userAddress, 'User Address', Icons.location_on),
                     const SizedBox(height: 20),
                     _buildTextField(fid, 'User FID', Icons.insert_drive_file),
                     const SizedBox(height: 20),
@@ -203,7 +243,8 @@ class _ScreenAddUsersState extends State<ScreenAddUsers> {
     );
   }
 
-  Widget _buildTextField(Rx<TextEditingController> controller, String label, IconData icon) {
+  Widget _buildTextField(Rx<TextEditingController> controller, String label,
+      IconData icon) {
     return TextFormField(
       style: TextStyle(
         color: Colors.black,

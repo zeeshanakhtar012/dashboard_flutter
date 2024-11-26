@@ -12,10 +12,34 @@ class UserListScreen extends StatefulWidget {
   State<UserListScreen> createState() => _UserListScreenState();
 }
 
-class _UserListScreenState extends State<UserListScreen> {
+class _UserListScreenState extends State<UserListScreen> with WidgetsBindingObserver {
   final UserController userController = Get.put(UserController());
-
   final TextEditingController searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add observer
+    _fetchData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _fetchData(); // Fetch data when screen resumes
+    }
+  }
+
+  void _fetchData() {
+    userController.fetchAllUsers();
+    userController.fetchUserListWithModules();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +64,8 @@ class _UserListScreenState extends State<UserListScreen> {
                   controller: searchController,
                   readOnly: true,
                   onTap: () {
-                    Get.to(() => SearchUserScreen(searchQuery: searchController.text.trim()));
+                    Get.to(() => SearchUserScreen(searchQuery: searchController.text.trim()))!
+                        .then((_) => _fetchData()); // Fetch data when navigating back
                   },
                   decoration: InputDecoration(
                     labelText: 'Search Users',
@@ -78,7 +103,8 @@ class _UserListScreenState extends State<UserListScreen> {
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('${user.userName}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                      Text('${user.userName}',
+                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                       Text('${user.email}', style: TextStyle(fontSize: 12)),
                                     ],
                                   ),
