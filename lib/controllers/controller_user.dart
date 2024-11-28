@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:admin/utils/firebase_utils.dart';
+import 'package:archive/archive_io.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
@@ -14,7 +15,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:http/http.dart' as http;
 import '../models/modules.dart';
 import '../models/user.dart';
 import 'dart:html' as html;
@@ -22,7 +23,6 @@ import 'dart:typed_data';
 
 class UserController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   var userData = Map<String, dynamic>().obs;
   var usersList = <User>[].obs;
   var isLoading = false.obs;
@@ -156,7 +156,109 @@ class UserController extends GetxController {
     super.onInit();
     fetchAllUsers();
   }
+  // Images downloading
+  Future<File> generateAndDownloadData(List<Map<String, dynamic>> data) async {
+    // Step 1: Fetch image URLs
+    List<String> imageUrls = data.map((entry) => entry['imageUrl'] as String).toList();
 
+    // Step 2: Download images
+    final tempDir = await getTemporaryDirectory();
+    List<File> downloadedImages = [];
+    for (int i = 0; i < imageUrls.length; i++) {
+      final response = await http.get(Uri.parse(imageUrls[i]));
+      final imageFile = File('${tempDir.path}/image_$i.jpg');
+      await imageFile.writeAsBytes(response.bodyBytes);
+      downloadedImages.add(imageFile);
+    }
+
+    // Step 3: Generate CSV file
+    // Transform Map<String, dynamic> into List<dynamic> for CSV
+    final List<List<dynamic>> csvRows = [
+      data.first.keys.toList(), // Header row
+      ...data.map((entry) => entry.values.toList()) // Data rows
+    ];
+    final csvData = const ListToCsvConverter().convert(csvRows);
+    final csvFile = File('${tempDir.path}/images_metadata.csv');
+    await csvFile.writeAsString(csvData);
+
+    // Step 4: Create ZIP file
+    final archive = Archive();
+    for (var image in downloadedImages) {
+      final imageBytes = await image.readAsBytes();
+      archive.addFile(ArchiveFile(image.path.split('/').last, imageBytes.length, imageBytes));
+    }
+    final csvBytes = await csvFile.readAsBytes();
+    archive.addFile(ArchiveFile('images_metadata.csv', csvBytes.length, csvBytes));
+
+    final zipBytes = ZipEncoder().encode(archive);
+    if (zipBytes == null) {
+      throw Exception('Failed to create ZIP file. The archive might be empty.');
+    }
+
+    final zipFilePath = '${tempDir.path}/images_and_metadata.zip';
+    final zipFile = File(zipFilePath);
+    await zipFile.writeAsBytes(zipBytes);
+
+    // Step 5: Return ZIP file
+    return zipFile;
+  }
+
+  // create zip file
+  Future<File> createZipFile(List<String> imageUrls, File csvFile) async {
+    final archive = Archive();
+
+    // Add images to the archive
+    for (int i = 0; i < imageUrls.length; i++) {
+      final response = await http.get(Uri.parse(imageUrls[i]));
+      archive.addFile(ArchiveFile('image_$i.jpg', response.bodyBytes.length, response.bodyBytes));
+    }
+
+    // Add CSV to the archive
+    final csvBytes = await csvFile.readAsBytes();
+    archive.addFile(ArchiveFile('images_metadata.csv', csvBytes.length, csvBytes));
+
+    // Encode the archive to a ZIP file
+    final encoded = ZipEncoder().encode(archive);
+
+    if (encoded == null) {
+      throw Exception('Failed to encode the archive. The archive might be empty.');
+    }
+
+    // Save the archive as a ZIP file
+    final directory = await getApplicationDocumentsDirectory();
+    final zipFilePath = '${directory.path}/images_and_metadata.zip';
+    final zipFile = File(zipFilePath);
+    await zipFile.writeAsBytes(encoded);
+
+    return zipFile;
+  }
+  // download Images
+  Future<void> downloadImages(List<String> imageUrls) async {
+    final directory = await getTemporaryDirectory();
+    for (int i = 0; i < imageUrls.length; i++) {
+      final response = await http.get(Uri.parse(imageUrls[i]));
+      final file = File('${directory.path}/image_$i.jpg');
+      await file.writeAsBytes(response.bodyBytes);
+    }
+  }
+  // generate images csv files
+  Future<File> generateImagesCSVFile(List<Map<String, dynamic>> data) async {
+    // Convert data to List<List<dynamic>>
+    final List<List<dynamic>> csvRows = [
+      data.first.keys.toList(), // Header row
+      ...data.map((entry) => entry.values.toList()), // Data rows
+    ];
+
+    // Convert to CSV string
+    final csvData = const ListToCsvConverter().convert(csvRows);
+
+    // Save to file
+    final directory = await getApplicationDocumentsDirectory();
+    final path = '${directory.path}/images_metadata.csv';
+    final file = File(path);
+    return file.writeAsString(csvData);
+  }
+  // fetch all users
   fetchAllUsers() async {
     try {
       isLoading(true);
@@ -171,7 +273,7 @@ class UserController extends GetxController {
       isLoading(false);
     }
   }
-
+  // fetch user data with user ID
   Future<void> fetchUserData(String userId) async {
     // Reference to the user's document
     final userDocRef = FirebaseFirestore.instance.collection('users').doc(userId);
@@ -261,8 +363,8 @@ class UserController extends GetxController {
       "Location",
       "Longitude",
       "Latitude",
+      "Field 5",
       "Images",
-      "Location",
       "Time Uploaded",
       "Date Uploaded",
       "Visit Date"
@@ -303,28 +405,34 @@ class UserController extends GetxController {
 
           // Extract and handle `time` field (as Timestamp)
           String time = data.containsKey('time') && data['time'] is Timestamp
-              ? DateFormat('MM/dd/yyyy hh:mm a').format((data['time'] as Timestamp).toDate())
+              ? DateFormat('yyyy-MM-dd HH:mm:ss').format((data['time'] as Timestamp).toDate())
               : 'N/A';
-
           // Extract and handle `visitDate` field (as Timestamp)
           String visitDate = data.containsKey('visitDate') && data['visitDate'] is Timestamp
-              ? DateFormat('dd-MMM-yyyy hh:mm a')
-              .format((data['visitDate'] as Timestamp).toDate())
+              ? DateFormat('yyyy-MM-dd HH:mm:ss').format((data['visitDate'] as Timestamp).toDate())
               : 'N/A';
 
+          // Handle other fields safely
           String assetType = data['assetType'] ?? 'N/A';
           String location = data['location'] ?? 'N/A';
           String retailerName = data['retailerName'] ?? 'N/A';
           String retailerAddress = data['retailerAddress'] ?? 'N/A';
-          String lat = data['latitude'] ?? 'N/A';
-          String longitude = data['longitude'] ?? 'N/A';
+          String longitude = data['longitude']?.toString() ?? 'N/A'; // Added longitude
+          String latitude = data['latitude']?.toString() ?? 'N/A';   // Added latitude
+
+          // Handle images list
           List<String> images = (data['images'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
               ['N/A'];
-          String imageList = images.join(", ");
+          String imageList = images.join(", "); // Convert list to a comma-separated string
+
+          // Log the fetched data for debugging
           log("time: $time, visitDate: $visitDate");
+
+          // Add a new row for each module's data, keeping user details in place
           rows.add([
+            // Add user details only once in the first row
             (rows.length == 1) ? userId : '',
             (rows.length == 1) ? userName : '',
             (rows.length == 1) ? email : '',
@@ -338,12 +446,12 @@ class UserController extends GetxController {
             assetType,
             retailerName,
             retailerAddress,
-            lat,
-            longitude,
             location,
+            longitude, // Add longitude value
+            latitude,  // Add latitude value
             "N/A", // Placeholder for Field 5
             imageList,
-            location,
+            time, // Time Uploaded
             time, // Duplicate time as Date Uploaded
             visitDate,
           ]);
@@ -383,7 +491,6 @@ class UserController extends GetxController {
 
     return csvData; // Return the generated CSV data
   }
-
   // download csv fil
   Future<void> downloadCsv(String userId) async {
     try {
@@ -408,7 +515,7 @@ class UserController extends GetxController {
           ..click();
         html.Url.revokeObjectUrl(url);
         Get.snackbar(
-          snackPosition: SnackPosition.TOP,
+            snackPosition: SnackPosition.TOP,
             backgroundColor: Colors.green,
             "Success", "CSV file is being downloaded");
       } else {
@@ -516,7 +623,7 @@ class UserController extends GetxController {
   // get users from firestore
   Future<User?> getUserFromFirestore(String userId) async {
     DocumentSnapshot doc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
     if (doc.exists) {
       return User.fromDocumentSnapshot(doc.data() as Map<String, dynamic>);
@@ -528,7 +635,7 @@ class UserController extends GetxController {
   Future<void> updateUserInFirestore(User user) async {
     try {
       DocumentSnapshot doc =
-          await _firestore.collection('users').doc(user.userId).get();
+      await _firestore.collection('users').doc(user.userId).get();
       if (doc.exists) {
         await _firestore
             .collection('users')
@@ -553,11 +660,11 @@ class UserController extends GetxController {
       QuerySnapshot querySnapshot = await _firestore
           .collection('users')
           .where('userName',
-              isGreaterThanOrEqualTo:
-                  trimmedUsername) // Start matching from the trimmed username
+          isGreaterThanOrEqualTo:
+          trimmedUsername) // Start matching from the trimmed username
           .where('userName',
-              isLessThanOrEqualTo:
-                  trimmedUsername + '\uf8ff') // Include all possible endings
+          isLessThanOrEqualTo:
+          trimmedUsername + '\uf8ff') // Include all possible endings
           .get();
 
       usersList.value = querySnapshot.docs.map((doc) {

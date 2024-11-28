@@ -99,15 +99,13 @@ class _ScreenAddRetailersState extends State<ScreenAddRetailers> {
       // Call update if in editing mode, otherwise save
       await retailerController.saveRetailerToFirestore(retailerModel);
       Get.snackbar('Success', 'Retailer added successfully!', backgroundColor: Colors.green);
-
-      if (widget.retailer != null) {
         retailerAddress.value.clear();
         retailerName.value.clear();
         fid.value.clear();
         region.value.clear();
         posid.value.clear();
         mbu.value.clear();
-      }
+        phoneNo.value.clear();
     } catch (error) {
       Get.snackbar('Error', 'Failed to save retailer: $error', backgroundColor: Colors.red);
     } finally {
