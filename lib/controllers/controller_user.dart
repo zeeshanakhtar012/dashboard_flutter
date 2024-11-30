@@ -357,7 +357,7 @@ class UserController extends GetxController {
       "MBU",
       "User Address",
       "Module Name",
-      "Company Asset Type",
+      "Asset Type",
       "Retailer Name",
       "Retailer Address",
       "Location",
@@ -405,52 +405,57 @@ class UserController extends GetxController {
 
           // Extract and handle `time` field (as Timestamp)
           String time = data.containsKey('time') && data['time'] is Timestamp
-              ? DateFormat('yyyy-MM-dd HH:mm:ss').format((data['time'] as Timestamp).toDate())
-              : 'N/A';
-          // Extract and handle `visitDate` field (as Timestamp)
-          String visitDate = data.containsKey('visitDate') && data['visitDate'] is Timestamp
-              ? DateFormat('yyyy-MM-dd HH:mm:ss').format((data['visitDate'] as Timestamp).toDate())
+              ? DateFormat('yyyy-MM-dd_HH-mm-ss') // Format for file compatibility
+              .format((data['time'] as Timestamp).toDate())
               : 'N/A';
 
-          // Handle other fields safely
+          // Extract and handle other fields safely
+          String latitude = data['latitude']?.toString() ?? 'N/A';
+          String longitude = data['longitude']?.toString() ?? 'N/A';
           String assetType = data['assetType'] ?? 'N/A';
-          String location = data['location'] ?? 'N/A';
           String retailerName = data['retailerName'] ?? 'N/A';
           String retailerAddress = data['retailerAddress'] ?? 'N/A';
-          String longitude = data['longitude']?.toString() ?? 'N/A'; // Added longitude
-          String latitude = data['latitude']?.toString() ?? 'N/A';   // Added latitude
+          String location = data['location'] ?? 'N/A';
+          String visitDate = data.containsKey('visitDate') && data['visitDate'] is Timestamp
+              ? DateFormat('yyyy-MM-dd HH:mm:ss')
+              .format((data['visitDate'] as Timestamp).toDate())
+              : 'N/A';
 
           // Handle images list
           List<String> images = (data['images'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
               ['N/A'];
-          String imageList = images.join(", "); // Convert list to a comma-separated string
 
-          // Log the fetched data for debugging
-          log("time: $time, visitDate: $visitDate");
+          // Update image names with the required format
+          List<String> formattedImageNames = images.map((originalName) {
+            String newName =
+                "${latitude}_${longitude}_${time}_${moduleName}_01_${phoneNumber}_${mbu}_PosID";
+            return newName;
+          }).toList();
 
-          // Add a new row for each module's data, keeping user details in place
+          String imageList = formattedImageNames.join(", "); // Convert to a string
+
+          // Add the row with updated image names
           rows.add([
-            // Add user details only once in the first row
-            (rows.length == 1) ? userId : '',
-            (rows.length == 1) ? userName : '',
-            (rows.length == 1) ? email : '',
-            (rows.length == 1) ? designation : '',
-            (rows.length == 1) ? employeeId : '',
-            (rows.length == 1) ? phoneNumber : '',
-            (rows.length == 1) ? region : '',
-            (rows.length == 1) ? mbu : '',
-            (rows.length == 1) ? userAddress : '',
+            userId,
+            userName,
+            email,
+            designation,
+            employeeId,
+            phoneNumber,
+            region,
+            mbu,
+            userAddress,
             moduleName,
             assetType,
             retailerName,
             retailerAddress,
             location,
-            longitude, // Add longitude value
-            latitude,  // Add latitude value
+            longitude,
+            latitude,
             "N/A", // Placeholder for Field 5
-            imageList,
+            imageList, // Updated image list
             time, // Time Uploaded
             time, // Duplicate time as Date Uploaded
             visitDate,
@@ -473,6 +478,7 @@ class UserController extends GetxController {
         region,
         mbu,
         userAddress,
+        "N/A",
         "N/A",
         "N/A",
         "N/A",
